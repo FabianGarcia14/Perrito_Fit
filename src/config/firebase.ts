@@ -8,12 +8,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // TODO: Replace with your actual Firebase project credentials
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT.firebasestorage.app',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: "AIzaSyA0ALAFBGBx1T_G3c2FcZAYYExoKfxB2h4",
+  authDomain: "perrito-fit.firebaseapp.com",
+  projectId: "perrito-fit",
+  storageBucket: "perrito-fit.firebasestorage.app",
+  messagingSenderId: "467593143794",
+  appId: "1:467593143794:web:eb435794021a9fd863376b",
+  measurementId: "G-JYSK74064L"
 };
 
 /** Firebase app instance */

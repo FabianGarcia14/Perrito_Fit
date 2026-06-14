@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
+import { getLocalDateString, shiftDate, formatDateDisplay, isToday } from '../utils/dateUtils';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStore } from '../store/useStore';
-import { addWater, updateWeight, getDailyLog } from '../services/firestoreService';
+import { addWater, updateWeight, updateMedications, getDailyLog, getMostRecentWeight } from '../services/firestoreService';
 import { Colors } from '../theme/colors';
 import CircularProgress from '../components/CircularProgress';
 import MacroCard from '../components/MacroCard';
@@ -32,13 +33,13 @@ const maliImages: Record<string, any> = {
   encouraging: require('../../assets/mascots/mali_happy.png'),
 };
 
-const satoImages: Record<string, any> = {
-  sleeping: require('../../assets/mascots/sato_encouraging.png'),
-  happy: require('../../assets/mascots/sato_happy.png'),
-  eating: require('../../assets/mascots/sato_happy.png'),
-  drinking: require('../../assets/mascots/sato_drinking.png'),
-  celebrating: require('../../assets/mascots/sato_happy.png'),
-  encouraging: require('../../assets/mascots/sato_encouraging.png'),
+const henniImages: Record<string, any> = {
+  sleeping: require('../../assets/mascots/henni_encouraging.png'),
+  happy: require('../../assets/mascots/henni_happy.png'),
+  eating: require('../../assets/mascots/henni_happy.png'),
+  drinking: require('../../assets/mascots/henni_drinking.png'),
+  celebrating: require('../../assets/mascots/henni_happy.png'),
+  encouraging: require('../../assets/mascots/henni_encouraging.png'),
 };
 
 const mascotMessages: Record<MascotMood, string> = {
@@ -57,25 +58,49 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
-function getFormattedDate(): string {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-}
+
 
 type DashboardNav = BottomTabNavigationProp<MainTabParamList, 'Dashboard'>;
 
 export default function DashboardScreen() {
   const navigation = useNavigation<DashboardNav>();
-  const { user, dailyLog, setDailyLog, getMascotState } = useStore();
+  const { user, dailyLog, setDailyLog, getMascotState, selectedDate, setSelectedDate, isLoading, setLoading } = useStore();
   const [refreshing, setRefreshing] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [waterInput, setWaterInput] = useState('');
+  const [recentWeight, setRecentWeight] = useState<{ weight: number; date: string } | null>(null);
+
+  const goToPreviousDay = () => setSelectedDate(shiftDate(selectedDate, -1));
+  const goToNextDay = () => setSelectedDate(shiftDate(selectedDate, 1));
+  const goToToday = () => setSelectedDate(getLocalDateString());
+
+  useEffect(() => {
+    const loadDateData = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const log = await getDailyLog(user.uid, selectedDate);
+        setDailyLog(log);
+      } catch (error) {
+        console.error('Error loading daily log:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDateData();
+  }, [selectedDate, user]);
+
+  useEffect(() => {
+    if (user && (!dailyLog || !dailyLog.currentWeight)) {
+      getMostRecentWeight(user.uid, selectedDate).then(setRecentWeight);
+    } else {
+      setRecentWeight(null);
+    }
+  }, [user, dailyLog?.currentWeight, selectedDate]);
 
   const mascotState = getMascotState();
-  const goals = user?.goals ?? { calories: 2000, protein: 150, carbs: 250, fat: 65, water: 8 };
+  const goals = user?.goals ?? { calories: 2000, protein: 150, carbs: 250, fat: 65, water: 64 };
   const totals = dailyLog?.totals ?? { calories: 0, protein: 0, carbs: 0, fat: 0, waterIntake: 0 };
 
   const calProgress = goals.calories > 0 ? Math.min(totals.calories / goals.calories, 1) : 0;
@@ -83,17 +108,25 @@ export default function DashboardScreen() {
   const onRefresh = useCallback(async () => {
     if (!user) return;
     setRefreshing(true);
-    const today = new Date().toISOString().split('T')[0];
+    const today = selectedDate;
     const log = await getDailyLog(user.uid, today);
     setDailyLog(log);
     setRefreshing(false);
   }, [user]);
 
-  const handleAddWater = async () => {
+  const handleAddWaterOz = async (oz: number) => {
     if (!user) return;
-    const today = new Date().toISOString().split('T')[0];
-    await addWater(user.uid, today, 1);
-    const log = await getDailyLog(user.uid, today);
+    await addWater(user.uid, selectedDate, oz);
+    const log = await getDailyLog(user.uid, selectedDate);
+    setDailyLog(log);
+    setWaterInput('');
+  };
+
+  const handleToggleMeds = async () => {
+    if (!user) return;
+    const newValue = !dailyLog?.medicationsTaken;
+    await updateMedications(user.uid, selectedDate, newValue);
+    const log = await getDailyLog(user.uid, selectedDate);
     setDailyLog(log);
   };
 
@@ -102,7 +135,7 @@ export default function DashboardScreen() {
       ? Alert.prompt('Log Weight', 'Enter your weight (lbs):', async (text) => {
           const weight = parseFloat(text);
           if (!isNaN(weight) && user) {
-            const today = new Date().toISOString().split('T')[0];
+            const today = selectedDate;
             await updateWeight(user.uid, today, weight);
             const log = await getDailyLog(user.uid, today);
             setDailyLog(log);
@@ -114,7 +147,7 @@ export default function DashboardScreen() {
   const submitWeight = async () => {
     const weight = parseFloat(weightInput);
     if (!isNaN(weight) && user) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = selectedDate;
       await updateWeight(user.uid, today, weight);
       const log = await getDailyLog(user.uid, today);
       setDailyLog(log);
@@ -124,7 +157,7 @@ export default function DashboardScreen() {
   };
 
   const waterGlasses = totals.waterIntake || 0;
-  const waterGoal = goals.water || 8;
+  const waterGoal = goals.water || 64;
 
   return (
     <ScrollView
@@ -136,8 +169,24 @@ export default function DashboardScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>{getGreeting()}, {user?.displayName?.split(' ')[0] ?? 'Friend'} 👋</Text>
-          <Text style={styles.date}>{getFormattedDate()}</Text>
+          <Text style={styles.date}>{formatDateDisplay(selectedDate)}</Text>
         </View>
+      </View>
+
+      {/* Date Navigator */}
+      <View style={styles.dateNav}>
+        <TouchableOpacity onPress={goToPreviousDay} style={styles.dateArrow}>
+          <Text style={styles.dateArrowText}>◀</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={goToToday} style={styles.dateCenter}>
+          <Text style={styles.dateText}>{formatDateDisplay(selectedDate)}</Text>
+          {!isToday(selectedDate) && (
+            <Text style={styles.todayHint}>Tap for today</Text>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity onPress={goToNextDay} style={styles.dateArrow}>
+          <Text style={styles.dateArrowText}>▶</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Mascot Area */}
@@ -152,8 +201,8 @@ export default function DashboardScreen() {
             <View style={styles.speechArrowLeft} />
           </View>
           <View style={styles.mascotContainer}>
-            <Image source={satoImages[mascotState]} style={styles.mascotImage} resizeMode="contain" />
-            <Text style={styles.mascotName}>Sato</Text>
+            <Image source={henniImages[mascotState]} style={styles.mascotImage} resizeMode="contain" />
+            <Text style={styles.mascotName}>Henni</Text>
           </View>
         </View>
       </View>
@@ -166,7 +215,7 @@ export default function DashboardScreen() {
             size={160}
             strokeWidth={14}
             progress={calProgress}
-            color={Colors.primary}
+            color={totals.calories > goals.calories ? Colors.warning : Colors.primary}
             backgroundColor={Colors.surface}
           >
             <Text style={styles.calNumber}>{Math.round(totals.calories)}</Text>
@@ -183,21 +232,54 @@ export default function DashboardScreen() {
         <MacroCard icon="🥑" label="Fat" current={totals.fat} goal={goals.fat} color={Colors.success} />
       </View>
 
+      {/* Extra Macros */}
+      <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Extra Macros</Text>
+      <View style={[styles.macroRow, { marginBottom: 10 }]}>
+        <MacroCard icon="🧂" label="Sodium" current={totals.sodium || 0} goal={goals.sodium || 2300} color="#9E9E9E" unit="mg" />
+        <MacroCard icon="🫀" label="Cholest." current={totals.cholesterol || 0} goal={goals.cholesterol || 300} color="#E53935" unit="mg" />
+      </View>
+      <View style={styles.macroRow}>
+        <MacroCard icon="🍬" label="Sugars" current={totals.sugars || 0} goal={goals.sugars || 50} color="#9C27B0" unit="g" />
+        <MacroCard icon="🌾" label="Fiber" current={totals.fiber || 0} goal={goals.fiber || 28} color="#4CAF50" unit="g" />
+      </View>
+
       {/* Water Tracker */}
       <View style={styles.waterCard}>
         <View style={styles.waterHeader}>
-          <Text style={styles.sectionTitle}>Water 💧</Text>
-          <Text style={styles.waterCount}>{waterGlasses}/{waterGoal} glasses</Text>
+          <Text style={styles.sectionTitle}>Water Intake 💧</Text>
+          <Text style={styles.waterCount}>{waterGlasses} / {waterGoal} oz</Text>
         </View>
-        <View style={styles.waterRow}>
-          {Array.from({ length: waterGoal }).map((_, i) => (
-            <Text key={i} style={[styles.waterGlass, i < waterGlasses && styles.waterGlassFilled]}>
-              {i < waterGlasses ? '🥛' : '🫙'}
-            </Text>
-          ))}
+        <View style={styles.waterBarTrack}>
+          <View style={[styles.waterBarFill, { width: `${Math.min((waterGlasses / waterGoal) * 100, 100)}%` }]} />
         </View>
-        <TouchableOpacity style={styles.addWaterBtn} onPress={handleAddWater}>
-          <Text style={styles.addWaterText}>+ Add Glass</Text>
+        <View style={styles.waterBtnRow}>
+          <TextInput
+            style={[styles.weightInput, { flex: 1, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 10 }]}
+            keyboardType="numeric"
+            placeholder="oz"
+            placeholderTextColor={Colors.textSecondary}
+            value={waterInput}
+            onChangeText={setWaterInput}
+          />
+          <TouchableOpacity style={[styles.addWaterBtn, { justifyContent: 'center' }]} onPress={() => handleAddWaterOz(parseFloat(waterInput) || 0)}>
+            <Text style={styles.addWaterText}>Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.addWaterBtn, { backgroundColor: Colors.surface, justifyContent: 'center' }]} onPress={() => handleAddWaterOz(-(parseFloat(waterInput) || 0))}>
+            <Text style={[styles.addWaterText, { color: Colors.textSecondary }]}>Remove</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Medications & Vitamins */}
+      <View style={styles.medsCard}>
+        <TouchableOpacity style={styles.medsRow} onPress={handleToggleMeds}>
+          <View style={styles.medsLeft}>
+            <Text style={styles.medsEmoji}>💊</Text>
+            <Text style={styles.medsLabel}>Medications & Vitamins</Text>
+          </View>
+          <View style={[styles.medsCheck, dailyLog?.medicationsTaken && styles.medsCheckActive]}>
+            <Text style={styles.medsCheckText}>{dailyLog?.medicationsTaken ? '✓' : ''}</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -243,10 +325,14 @@ export default function DashboardScreen() {
       )}
 
       {/* Current Weight Display */}
-      {dailyLog?.currentWeight && (
+      {(dailyLog?.currentWeight || recentWeight) && (
         <View style={styles.weightDisplay}>
-          <Text style={styles.weightLabel}>Today's Weight</Text>
-          <Text style={styles.weightValue}>{dailyLog.currentWeight} lbs</Text>
+          <Text style={styles.weightLabel}>
+            {dailyLog?.currentWeight ? "Today's Weight" : `Last tracked on ${formatDateDisplay(recentWeight!.date)}`}
+          </Text>
+          <Text style={styles.weightValue}>
+            {dailyLog?.currentWeight || recentWeight?.weight} lbs
+          </Text>
         </View>
       )}
 
@@ -329,16 +415,68 @@ const styles = StyleSheet.create({
   },
   waterHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   waterCount: { fontSize: 14, color: Colors.water, fontWeight: '600' },
-  waterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  waterGlass: { fontSize: 24, opacity: 0.3 },
-  waterGlassFilled: { opacity: 1 },
   addWaterBtn: {
+    flex: 1,
     backgroundColor: Colors.water + '20',
     borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
   },
   addWaterText: { color: Colors.water, fontWeight: '700', fontSize: 14 },
+
+  // Water Bar
+  waterBarTrack: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.surface,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  waterBarFill: {
+    height: '100%',
+    borderRadius: 6,
+    backgroundColor: Colors.water,
+  },
+  waterBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+
+  // Medications
+  medsCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  medsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  medsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  medsEmoji: { fontSize: 24 },
+  medsLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
+  medsCheck: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  medsCheckActive: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  medsCheckText: { color: '#fff', fontSize: 18, fontWeight: '800' },
 
   // Actions
   actionRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
@@ -387,4 +525,44 @@ const styles = StyleSheet.create({
   },
   weightLabel: { fontSize: 13, color: Colors.textSecondary },
   weightValue: { fontSize: 24, fontWeight: '800', color: Colors.text, marginTop: 4 },
+
+  // Date Navigator
+  dateNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  dateArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateArrowText: {
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  dateCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  todayHint: {
+    fontSize: 11,
+    color: Colors.primary,
+    marginTop: 2,
+  },
 });

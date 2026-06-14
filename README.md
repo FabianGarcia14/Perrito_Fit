@@ -1,0 +1,103 @@
+# 🐶 Perrito Fit — Gamified Pet Health & Nutrition Tracker
+
+Perrito Fit is a beautiful, gamified mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase**. 
+
+Users can log their meals, water intake, daily macro-nutrients, and weight. The unique feature is **Henni the Mascot**—an adorable virtual dog that stays active on your dashboard, sleeping, eating, drinking, or encouraging you based on your habits, streak, and log history!
+
+---
+
+## ✨ Features
+
+- **🐾 Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
+- **🍎 Complete Meal & Macro Logger:** Track calories, proteins, carbs, and fats. Categorize by Breakfast, Lunch, Dinner, and Snacks.
+- **🔍 Barcode Scanner:** Scan product barcodes instantly using the **Open Food Facts API** to fetch nutritional values automatically.
+- **💧 Water Intake Tracker:** Set daily hydration targets and log water cup-by-cup (in oz).
+- **📉 Weight History & Progress:** Log daily weight changes to view your health progression.
+- **🔥 Gamified Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
+- **⚡ Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Expo](https://expo.dev/) (React Native)
+- **Language:** TypeScript
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand)
+- **Database & Auth:** [Firebase Auth](https://firebase.google.com/docs/auth) & [Cloud Firestore](https://firebase.google.com/docs/firestore)
+- **API Integrations:** [Open Food Facts API](https://world.openfoodfacts.org/data) (Barcode lookup)
+- **Navigation:** [React Navigation](https://reactnavigation.org/) (Native Stack & Bottom Tabs)
+- **Styling & UI:** Expo Linear Gradient, React Native Vector Icons, and a cohesive, vibrant modern dark/light system theme.
+
+---
+
+## 📂 Project Structure
+
+```text
+Perrito_Fit/
+├── assets/             # Images, icons, fonts, and Henni mascot assets
+├── src/
+│   ├── components/     # Reusable UI widgets (Macro cards, input fields, custom buttons)
+│   ├── config/         # Firebase initialization and configuration
+│   ├── screens/        # Primary views (Dashboard, AddMeal, History, Settings, Scan)
+│   ├── services/       # Firebase, Open Food Facts API, and local Cache integrations
+│   ├── store/          # Zustand store for daily state, metrics, and mascot rules
+│   ├── theme/          # Custom color palette, styling tokens, and layout guidelines
+│   ├── types/          # Strict TypeScript interfaces (User, Meal, Macros, MascotState)
+│   └── utils/          # Formatting helpers, date builders, and calculations
+├── App.tsx             # Main entry point & root navigator configuration
+├── app.json            # Expo configuration profile
+└── package.json        # Dependencies & package scripts
+```
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to run the application locally on your machine:
+
+### Prerequisite
+Make sure you have **Node.js** (v18+) and **git** installed. We recommend installing the Expo Go app on your iOS/Android device to preview the project live.
+
+### 1. Clone the repository
+```bash
+git clone <your-repository-url>
+cd Perrito_Fit
+```
+
+### 2. Install dependencies
+```bash
+npm install
+```
+
+### 3. Setup Firebase
+The project is configured with a default Firebase App. If you want to use your own Firebase database:
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
+2. Enable **Authentication** (Email/Password) and **Firestore Database**.
+3. Update [src/config/firebase.ts](file:///c:/Inventos_AI/Perrito_Fit/src/config/firebase.ts) with your credentials:
+   ```typescript
+   const firebaseConfig = {
+     apiKey: "YOUR_API_KEY",
+     authDomain: "YOUR_AUTH_DOMAIN",
+     projectId: "YOUR_PROJECT_ID",
+     storageBucket: "YOUR_STORAGE_BUCKET",
+     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+     appId: "YOUR_APP_ID"
+   };
+   ```
+
+### 4. Run the Dev Server
+Start the Metro bundler:
+```bash
+npm run start
+```
+Use the QR code in your terminal to open it in **Expo Go** (iOS/Android), or press `a` for Android Emulator / `i` for iOS Simulator.
+
+---
+
+## 📜 License
+
+Distributed under the MIT License. See [LICENSE](file:///c:/Inventos_AI/Perrito_Fit/LICENSE) for more details.
+
+---
+
+*Made with ❤️ by the Perrito Fit team.*

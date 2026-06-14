@@ -2,17 +2,20 @@
 
 import { create } from 'zustand';
 import type { UserProfile, DailyLog, MascotState } from '../types';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface PerritoStore {
   // ── State ────────────────────────────────────────────────────────────────
   user: UserProfile | null;
   dailyLog: DailyLog | null;
   isLoading: boolean;
+  selectedDate: string;
 
   // ── Actions ──────────────────────────────────────────────────────────────
   setUser: (user: UserProfile | null) => void;
   setDailyLog: (log: DailyLog | null) => void;
   setLoading: (loading: boolean) => void;
+  setSelectedDate: (date: string) => void;
 
   // ── Computed ─────────────────────────────────────────────────────────────
   /** Derive the mascot animation state from current progress vs. goals. */
@@ -24,11 +27,13 @@ export const useStore = create<PerritoStore>((set, get) => ({
   user: null,
   dailyLog: null,
   isLoading: false,
+  selectedDate: getLocalDateString(),
 
   // ── Setters ────────────────────────────────────────────────────────────
   setUser: (user) => set({ user }),
   setDailyLog: (dailyLog) => set({ dailyLog }),
   setLoading: (isLoading) => set({ isLoading }),
+  setSelectedDate: (selectedDate) => set({ selectedDate }),
 
   // ── Mascot state logic ─────────────────────────────────────────────────
   getMascotState: (): MascotState => {

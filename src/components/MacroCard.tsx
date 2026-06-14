@@ -8,6 +8,7 @@ interface MacroCardProps {
   goal: number;
   color: string;
   icon: string;
+  unit?: string;
 }
 
 export default function MacroCard({
@@ -16,9 +17,12 @@ export default function MacroCard({
   goal,
   color,
   icon,
+  unit = 'g',
 }: MacroCardProps) {
   const progress = goal > 0 ? Math.min(current / goal, 1) : 0;
-  const remaining = Math.max(goal - current, 0);
+  const isOver = current > goal;
+  const diff = Math.abs(goal - current);
+  const diffText = isOver ? `${Math.round(diff)}${unit} over` : `${Math.round(diff)}${unit} left`;
 
   return (
     <View style={styles.card}>
@@ -35,9 +39,9 @@ export default function MacroCard({
       <Text style={styles.values}>
         <Text style={{ color }}>{Math.round(current)}</Text>
         <Text style={styles.separator}> / </Text>
-        <Text>{goal}g</Text>
+        <Text>{goal}{unit}</Text>
       </Text>
-      <Text style={styles.remaining}>{Math.round(remaining)}g left</Text>
+      <Text style={[styles.remaining, isOver && { color: Colors.warning }]}>{diffText}</Text>
     </View>
   );
 }

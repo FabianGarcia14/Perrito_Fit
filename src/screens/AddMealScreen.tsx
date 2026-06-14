@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,13 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
-import { addMealToLog, getDailyLog } from '../services/firestoreService';
+import { getLocalDateString } from '../utils/dateUtils';
+import { addMealToLog, getDailyLog, editMealInLog } from '../services/firestoreService';
 import { Colors } from '../theme/colors';
-import type { Meal, MealType, USDAFoodResult } from '../types';
+import type { Meal, MealType, USDAFoodResult, RootStackParamList, MainTabParamList, Macros } from '../types';
 
 const MEAL_TYPES: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
@@ -30,7 +33,9 @@ function extractNutrient(nutrients: any[], nutrientName: string): number {
 }
 
 export default function AddMealScreen() {
-  const { user, setDailyLog } = useStore();
+  const { user, setDailyLog, selectedDate } = useStore();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<RouteProp<MainTabParamList, 'AddMeal'>>();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<USDAFoodResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -42,7 +47,98 @@ export default function AddMealScreen() {
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
   const [fat, setFat] = useState('');
+  const [sodium, setSodium] = useState('');
+  const [cholesterol, setCholesterol] = useState('');
+  const [sugars, setSugars] = useState('');
+  const [fiber, setFiber] = useState('');
   const [mealType, setMealType] = useState<MealType>('Lunch');
+
+  // Scaling state
+  const [quantity, setQuantity] = useState('100');
+  const [unit, setUnit] = useState('g');
+  const [baseNutrition, setBaseNutrition] = useState<{ quantity: number; calories: number; macros: Macros } | null>(null);
+  
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDate, setEditDate] = useState<string | null>(null);
+  const [editMealId, setEditMealId] = useState<string | null>(null);
+
+  // Handle scanned barcode product data or edit meal
+  useEffect(() => {
+    const scannedProduct = route.params?.scannedProduct;
+    const editMeal = route.params?.editMeal;
+    const dateParam = route.params?.editDate;
+
+    if (editMeal) {
+      setIsEditing(true);
+      setEditDate(dateParam || selectedDate);
+      setEditMealId(editMeal.id);
+      setFoodName(editMeal.name);
+      setMealType(editMeal.type);
+      setCalories(String(editMeal.calories));
+      setProtein(String(editMeal.macros.protein));
+      setCarbs(String(editMeal.macros.carbs));
+      setFat(String(editMeal.macros.fat));
+      setSodium(String(editMeal.macros.sodium || ''));
+      setCholesterol(String(editMeal.macros.cholesterol || ''));
+      setSugars(String(editMeal.macros.sugars || ''));
+      setFiber(String(editMeal.macros.fiber || ''));
+      
+      if (editMeal.baseNutrition) {
+        setBaseNutrition(editMeal.baseNutrition);
+        setQuantity(String(editMeal.quantity || editMeal.baseNutrition.quantity));
+        setUnit(editMeal.unit || 'g');
+      } else {
+        setBaseNutrition(null);
+      }
+    } else if (scannedProduct) {
+      setFoodName(scannedProduct.name + (scannedProduct.brand ? ` (${scannedProduct.brand})` : ''));
+      const c = scannedProduct.calories;
+      const p = scannedProduct.protein;
+      const cb = scannedProduct.carbs;
+      const f = scannedProduct.fat;
+      const sod = scannedProduct.sodium || 0;
+      const chol = scannedProduct.cholesterol || 0;
+      const sug = scannedProduct.sugars || 0;
+      const fib = scannedProduct.fiber || 0;
+
+      setBaseNutrition({
+        quantity: 100,
+        calories: c,
+        macros: { protein: p, carbs: cb, fat: f, sodium: sod, cholesterol: chol, sugars: sug, fiber: fib }
+      });
+      setQuantity('100');
+      setUnit('g');
+      
+      setCalories(String(c));
+      setProtein(String(p));
+      setCarbs(String(cb));
+      setFat(String(f));
+      if (sod) setSodium(String(sod));
+      if (chol) setCholesterol(String(chol));
+      if (sug) setSugars(String(sug));
+      if (fib) setFiber(String(fib));
+    }
+  }, [route.params, selectedDate]);
+
+  // Scale nutrition when quantity changes
+  useEffect(() => {
+    if (baseNutrition) {
+      const q = parseFloat(quantity);
+      if (!isNaN(q) && q >= 0 && baseNutrition.quantity > 0) {
+        const ratio = q / baseNutrition.quantity;
+        setCalories((baseNutrition.calories * ratio).toFixed(1).replace(/\.0$/, ''));
+        setProtein((baseNutrition.macros.protein * ratio).toFixed(1).replace(/\.0$/, ''));
+        setCarbs((baseNutrition.macros.carbs * ratio).toFixed(1).replace(/\.0$/, ''));
+        setFat((baseNutrition.macros.fat * ratio).toFixed(1).replace(/\.0$/, ''));
+        
+        if (baseNutrition.macros.sodium !== undefined) setSodium((baseNutrition.macros.sodium * ratio).toFixed(1).replace(/\.0$/, ''));
+        if (baseNutrition.macros.cholesterol !== undefined) setCholesterol((baseNutrition.macros.cholesterol * ratio).toFixed(1).replace(/\.0$/, ''));
+        if (baseNutrition.macros.sugars !== undefined) setSugars((baseNutrition.macros.sugars * ratio).toFixed(1).replace(/\.0$/, ''));
+        if (baseNutrition.macros.fiber !== undefined) setFiber((baseNutrition.macros.fiber * ratio).toFixed(1).replace(/\.0$/, ''));
+      }
+    }
+  }, [quantity, baseNutrition]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -70,10 +166,24 @@ export default function AddMealScreen() {
 
   const selectFood = (food: USDAFoodResult) => {
     setFoodName(food.description);
-    setCalories(String(food.calories));
-    setProtein(String(food.protein));
-    setCarbs(String(food.carbs));
-    setFat(String(food.fat));
+    
+    const c = food.calories;
+    const p = food.protein;
+    const cb = food.carbs;
+    const f = food.fat;
+    const sod = food.sodium || 0;
+    const chol = food.cholesterol || 0;
+    const sug = food.sugars || 0;
+    const fib = food.fiber || 0;
+
+    setBaseNutrition({
+      quantity: 100, // USDA default
+      calories: c,
+      macros: { protein: p, carbs: cb, fat: f, sodium: sod, cholesterol: chol, sugars: sug, fiber: fib }
+    });
+    setQuantity('100');
+    setUnit('g');
+    
     setSearchResults([]);
     setSearchQuery('');
   };
@@ -87,31 +197,55 @@ export default function AddMealScreen() {
 
     setSaving(true);
     const meal: Meal = {
-      id: Date.now().toString(),
+      id: isEditing && editMealId ? editMealId : Date.now().toString(),
       name: foodName.trim(),
       calories: parseFloat(calories) || 0,
       macros: {
         protein: parseFloat(protein) || 0,
         carbs: parseFloat(carbs) || 0,
         fat: parseFloat(fat) || 0,
+        sodium: parseFloat(sodium) || 0,
+        cholesterol: parseFloat(cholesterol) || 0,
+        sugars: parseFloat(sugars) || 0,
+        fiber: parseFloat(fiber) || 0,
       },
       time: new Date().toISOString(),
       type: mealType,
+      ...(baseNutrition ? {
+        quantity: parseFloat(quantity) || 0,
+        unit,
+        baseNutrition,
+      } : {})
     };
 
     try {
-      const today = new Date().toISOString().split('T')[0];
-      await addMealToLog(user.uid, today, meal);
-      const log = await getDailyLog(user.uid, today);
+      const date = isEditing ? (editDate || selectedDate) : selectedDate;
+      if (isEditing && route.params?.editMeal) {
+        await editMealInLog(user.uid, date, route.params.editMeal, meal);
+        Alert.alert('✅ Meal Updated!', `${meal.name} has been updated.`);
+        (navigation as any).navigate('History');
+      } else {
+        await addMealToLog(user.uid, date, meal);
+        Alert.alert('✅ Meal Added!', `${meal.name} has been logged.`);
+      }
+      
+      const log = await getDailyLog(user.uid, date);
       setDailyLog(log);
 
-      // Reset form
-      setFoodName('');
-      setCalories('');
-      setProtein('');
-      setCarbs('');
-      setFat('');
-      Alert.alert('✅ Meal Added!', `${meal.name} has been logged.`);
+      if (!isEditing) {
+        // Reset form
+        setFoodName('');
+        setCalories('');
+        setProtein('');
+        setCarbs('');
+        setFat('');
+        setSodium('');
+        setCholesterol('');
+        setSugars('');
+        setFiber('');
+        setQuantity('');
+        setBaseNutrition(null);
+      }
     } catch (e) {
       Alert.alert('Error', 'Could not save meal. Try again.');
     } finally {
@@ -123,6 +257,15 @@ export default function AddMealScreen() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Add Meal 🍽️</Text>
+
+        {/* Barcode Scanner */}
+        <TouchableOpacity
+          style={styles.barcodeBtn}
+          onPress={() => navigation.navigate('BarcodeScanner')}
+        >
+          <Text style={styles.barcodeBtnEmoji}>📷</Text>
+          <Text style={styles.barcodeBtnText}>Scan Barcode</Text>
+        </TouchableOpacity>
 
         {/* Search */}
         <View style={styles.searchRow}>
@@ -161,7 +304,7 @@ export default function AddMealScreen() {
 
         {/* Manual Entry */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Manual Entry</Text>
+          <Text style={styles.formTitle}>{isEditing ? 'Edit Meal' : 'Manual Entry'}</Text>
 
           <Text style={styles.label}>Food Name</Text>
           <TextInput
@@ -171,6 +314,22 @@ export default function AddMealScreen() {
             value={foodName}
             onChangeText={setFoodName}
           />
+
+          {baseNutrition && (
+            <View style={{ marginTop: 10, backgroundColor: Colors.primary + '10', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.primary + '30' }}>
+              <Text style={[styles.label, { marginTop: 0, color: Colors.primary }]}>Amount Consumed ({unit})</Text>
+              <TextInput
+                style={[styles.input, { borderColor: Colors.primary, backgroundColor: Colors.surface }]}
+                keyboardType="numeric"
+                value={quantity}
+                onChangeText={setQuantity}
+                placeholder={`e.g. ${baseNutrition.quantity}`}
+              />
+              <Text style={{ fontSize: 11, color: Colors.textSecondary, marginTop: 4 }}>
+                Macros will automatically scale based on {baseNutrition.quantity}{unit} reference.
+              </Text>
+            </View>
+          )}
 
           <View style={styles.row}>
             <View style={styles.halfInput}>
@@ -222,6 +381,56 @@ export default function AddMealScreen() {
             </View>
           </View>
 
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <Text style={styles.label}>Sodium (mg)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="mg"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                value={sodium}
+                onChangeText={setSodium}
+              />
+            </View>
+            <View style={styles.halfInput}>
+              <Text style={styles.label}>Cholesterol (mg)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="mg"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                value={cholesterol}
+                onChangeText={setCholesterol}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.halfInput}>
+              <Text style={styles.label}>Sugars (g)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="g"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                value={sugars}
+                onChangeText={setSugars}
+              />
+            </View>
+            <View style={styles.halfInput}>
+              <Text style={styles.label}>Fiber (g)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="g"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                value={fiber}
+                onChangeText={setFiber}
+              />
+            </View>
+          </View>
+
           {/* Meal Type Selector */}
           <Text style={styles.label}>Meal Type</Text>
           <View style={styles.mealTypeRow}>
@@ -243,7 +452,7 @@ export default function AddMealScreen() {
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.saveBtnText}>Add Meal ✅</Text>
+              <Text style={styles.saveBtnText}>{isEditing ? 'Save Changes ✅' : 'Add Meal ✅'}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -343,4 +552,20 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+
+  // Barcode
+  barcodeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '20',
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginBottom: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary + '40',
+  },
+  barcodeBtnEmoji: { fontSize: 20 },
+  barcodeBtnText: { color: Colors.primary, fontSize: 15, fontWeight: '700' },
 });

@@ -9,8 +9,9 @@ import { auth } from './src/config/firebase';
 import { fetchUserProfile } from './src/services/authService';
 import { getDailyLog } from './src/services/firestoreService';
 import { useStore } from './src/store/useStore';
+import { getLocalDateString } from './src/utils/dateUtils';
 import { Colors } from './src/theme/colors';
-import type { AuthStackParamList, MainTabParamList } from './src/types';
+import type { AuthStackParamList, MainTabParamList, RootStackParamList } from './src/types';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -19,9 +20,11 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import AddMealScreen from './src/screens/AddMealScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import BarcodeScannerScreen from './src/screens/BarcodeScannerScreen';
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 function AuthNavigator() {
   return (
@@ -94,6 +97,19 @@ function MainNavigator() {
   );
 }
 
+function RootNavigator() {
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      <RootStack.Screen name="MainTabs" component={MainNavigator} />
+      <RootStack.Screen
+        name="BarcodeScanner"
+        component={BarcodeScannerScreen}
+        options={{ presentation: 'fullScreenModal' }}
+      />
+    </RootStack.Navigator>
+  );
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { setUser, setDailyLog, setLoading } = useStore();
@@ -107,7 +123,7 @@ export default function App() {
           setUser(profile);
 
           // Load today's daily log
-          const today = new Date().toISOString().split('T')[0];
+          const today = getLocalDateString();
           const log = await getDailyLog(profile.uid, today);
           setDailyLog(log);
         } catch (error) {
@@ -138,7 +154,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+      {isAuthenticated ? <RootNavigator /> : <AuthNavigator />}
       <StatusBar style="light" />
     </NavigationContainer>
   );

@@ -21,6 +21,10 @@ export default function SettingsScreen() {
   const [carbs, setCarbs] = useState(String(user?.goals.carbs ?? 250));
   const [fat, setFat] = useState(String(user?.goals.fat ?? 65));
   const [water, setWater] = useState(String(user?.goals.water ?? 8));
+  const [sodium, setSodium] = useState(String(user?.goals.sodium ?? 2300));
+  const [cholesterol, setCholesterol] = useState(String(user?.goals.cholesterol ?? 300));
+  const [sugars, setSugars] = useState(String(user?.goals.sugars ?? 50));
+  const [fiber, setFiber] = useState(String(user?.goals.fiber ?? 28));
   const [saving, setSaving] = useState(false);
 
   const handleSaveGoals = async () => {
@@ -33,6 +37,10 @@ export default function SettingsScreen() {
         carbs: parseInt(carbs) || 250,
         fat: parseInt(fat) || 65,
         water: parseInt(water) || 8,
+        sodium: parseInt(sodium) || 2300,
+        cholesterol: parseInt(cholesterol) || 300,
+        sugars: parseInt(sugars) || 50,
+        fiber: parseInt(fiber) || 28,
       };
       await updateGoals(user.uid, newGoals);
       setUser({ ...user, goals: newGoals });
@@ -121,12 +129,52 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.goalRow}>
-          <Text style={styles.goalLabel}>💧 Water (glasses)</Text>
+          <Text style={styles.goalLabel}>💧 Water (oz)</Text>
           <TextInput
             style={styles.goalInput}
             keyboardType="numeric"
             value={water}
             onChangeText={setWater}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>🧂 Sodium (mg)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={sodium}
+            onChangeText={setSodium}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>🍳 Cholesterol (mg)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={cholesterol}
+            onChangeText={setCholesterol}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>🍬 Sugars (g)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={sugars}
+            onChangeText={setSugars}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>🌾 Fiber (g)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={fiber}
+            onChangeText={setFiber}
           />
         </View>
 
@@ -148,7 +196,7 @@ export default function SettingsScreen() {
       <View style={styles.appInfo}>
         <Text style={styles.appName}>🐕 Perrito Fit</Text>
         <Text style={styles.appVersion}>Version 1.0.0</Text>
-        <Text style={styles.appMascots}>Mali 🐕‍🦺 & Sato 🐕</Text>
+        <Text style={styles.appMascots}>Mali 🐕‍🦺 & Henni 🐕</Text>
       </View>
 
       <View style={{ height: 40 }} />

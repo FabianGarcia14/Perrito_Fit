@@ -17,7 +17,11 @@ const DEFAULT_GOALS: Goals = {
   protein: 150,
   carbs: 250,
   fat: 65,
-  water: 8,
+  water: 64,
+  sodium: 2300,
+  cholesterol: 300,
+  sugars: 50,
+  fiber: 28,
 };
 
 /**

@@ -14,7 +14,11 @@ export interface Goals {
   protein: number;  // grams
   carbs: number;    // grams
   fat: number;      // grams
-  water: number;    // glasses
+  water: number;    // oz
+  sodium?: number;       // mg
+  cholesterol?: number;   // mg
+  sugars?: number;        // g
+  fiber?: number;         // g
 }
 
 // Keep NutritionGoals as alias for backward compatibility
@@ -27,6 +31,10 @@ export interface Macros {
   protein: number;
   carbs: number;
   fat: number;
+  sodium?: number;       // mg
+  cholesterol?: number;   // mg
+  sugars?: number;        // g
+  fiber?: number;         // g
 }
 
 export interface Meal {
@@ -36,6 +44,13 @@ export interface Meal {
   macros: Macros;
   time: string;       // ISO-8601 timestamp
   type: MealType;
+  quantity?: number;
+  unit?: string;
+  baseNutrition?: {
+    quantity: number;
+    calories: number;
+    macros: Macros;
+  };
 }
 
 // Keep MealEntry as alias for backward compatibility
@@ -52,6 +67,10 @@ export interface DailyTotals {
   carbs: number;
   fat: number;
   waterIntake: number;
+  sodium?: number;
+  cholesterol?: number;
+  sugars?: number;
+  fiber?: number;
 }
 
 export interface DailyLog {
@@ -59,6 +78,7 @@ export interface DailyLog {
   totals: DailyTotals;
   currentWeight?: number;
   meals: Meal[];
+  medicationsTaken?: boolean;
 }
 
 // Keep DailySummary as alias for backward compatibility
@@ -68,7 +88,7 @@ export type DailySummary = DailyLog;
 export interface WaterEntry {
   id: string;
   userId: string;
-  glasses: number;
+  oz: number;
   date: string; // YYYY-MM-DD
 }
 
@@ -101,6 +121,27 @@ export interface USDAFoodResult {
   protein: number;
   carbs: number;
   fat: number;
+  sodium?: number;
+  cholesterol?: number;
+  sugars?: number;
+  fiber?: number;
+}
+
+// ── Open Food Facts ───────────────────────────────────────
+export interface OpenFoodFactsResult {
+  barcode: string;
+  name: string;
+  brand?: string;
+  servingSize?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  sodium?: number;
+  cholesterol?: number;
+  sugars?: number;
+  fiber?: number;
+  imageUrl?: string;
 }
 
 // ── Navigation ────────────────────────────────────────
@@ -111,7 +152,12 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Dashboard: undefined;
-  AddMeal: undefined;
+  AddMeal: { scannedProduct?: OpenFoodFactsResult, editMeal?: Meal, editDate?: string } | undefined;
   History: undefined;
   Settings: undefined;
+};
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  BarcodeScanner: undefined;
 };
