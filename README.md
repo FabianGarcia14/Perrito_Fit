@@ -1,6 +1,6 @@
-# 🐶 Perrito Fit — Gamified Pet Health & Nutrition Tracker
+# 🐶 Perrito Fit — Interactive Pet Health & Nutrition Tracker
 
-Perrito Fit is a beautiful, gamified mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase**. 
+Perrito Fit is a beautiful, interactive mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase**. 
 
 Users can log their meals, water intake, daily macro-nutrients, and weight. The unique feature is **Henni the Mascot**—an adorable virtual dog that stays active on your dashboard, sleeping, eating, drinking, or encouraging you based on your habits, streak, and log history!
 
@@ -13,7 +13,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 - **🔍 Barcode Scanner:** Scan product barcodes instantly using the **Open Food Facts API** to fetch nutritional values automatically.
 - **💧 Water Intake Tracker:** Set daily hydration targets and log water cup-by-cup (in oz).
 - **📉 Weight History & Progress:** Log daily weight changes to view your health progression.
-- **🔥 Gamified Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
+- **🔥 Interactive Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
 - **⚡ Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
 
 ---
