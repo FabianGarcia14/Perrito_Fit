@@ -43,7 +43,7 @@ export async function updateUserGoals(
   goals: Partial<Goals>,
 ): Promise<void> {
   // Build a flat update map so Firestore merges individual keys
-  const updateMap: Record<string, number> = {};
+  const updateMap: Record<string, number | string> = {};
   for (const [key, value] of Object.entries(goals)) {
     if (value !== undefined) {
       updateMap[`goals.${key}`] = value;

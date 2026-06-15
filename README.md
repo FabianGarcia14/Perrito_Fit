@@ -9,11 +9,11 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 ## Features
 
 - **Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
-- **Complete Meal & Macro Logger:** Track calories, proteins, carbs, and fats. Categorize by Breakfast, Lunch, Dinner, and Snacks.
-- **Barcode Scanner:** Scan product barcodes instantly using the **Open Food Facts API** to fetch nutritional values automatically.
-- **Water Intake Tracker:** Set daily hydration targets and log water cup-by-cup (in oz).
-- **Weight History & Progress:** Log daily weight changes to view your health progression.
-- **Interactive Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
+- **Complete Meal & Macro Logger:** Track calories, proteins, carbs, fats, sodium, cholesterol, sugars, and fiber. Categorize by Breakfast, Lunch, Dinner, and Snacks.
+- **Barcode Scanner & Caching:** Scan product barcodes instantly using the **Open Food Facts API** with custom database caching and graceful error overlays.
+- **Water Intake Tracker:** Set daily hydration targets and log water intake with a flexible numeric input.
+- **Statistics & Progress Charts:** Toggle weekly, monthly, and yearly bar charts for Calories, Protein, and Weight logs.
+- **Interactive Meal Manager:** Tap any logged meal to edit its quantity (which dynamically recalculates nutritional macros) or delete it directly from the Statistics page.
 - **Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
 
 ---
@@ -39,7 +39,7 @@ Perrito_Fit/
 ├── src/
 │   ├── components/     # Reusable UI widgets (Macro cards, input fields, custom buttons)
 │   ├── config/         # Firebase initialization and configuration
-│   ├── screens/        # Primary views (Dashboard, AddMeal, History, Settings, Scan)
+│   ├── screens/        # Primary views (Dashboard, AddMeal, History (Statistics Tab), Settings, Scan)
 │   ├── services/       # Firebase, Open Food Facts API, and local Cache integrations
 │   ├── store/          # Zustand store for daily state, metrics, and mascot rules
 │   ├── theme/          # Custom color palette, styling tokens, and layout guidelines

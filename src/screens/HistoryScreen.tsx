@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { useStore } from '../store/useStore';
 import { getDailyLog, getLogsBetweenDates, removeMealFromLog } from '../services/firestoreService';
@@ -78,6 +79,8 @@ export default function HistoryScreen() {
   const { user } = useStore();
   const navigation = useNavigation();
   const [viewMode, setViewMode] = useState<'Daily' | 'Weekly'>('Daily');
+  const [selectedMealForOptions, setSelectedMealForOptions] = useState<Meal | null>(null);
+  const [mealOptionsVisible, setMealOptionsVisible] = useState(false);
   const [calFilter, setCalFilter] = useState<FilterType>('Week');
   const [weightFilter, setWeightFilter] = useState<FilterType>('Week');
   const [proteinFilter, setProteinFilter] = useState<FilterType>('Week');
@@ -143,29 +146,8 @@ export default function HistoryScreen() {
   };
 
   const handleMealPress = (meal: Meal) => {
-    Alert.alert(
-      'Meal Options',
-      `What would you like to do with ${meal.name}?`,
-      [
-        {
-          text: 'Edit',
-          onPress: () => {
-            (navigation as any).navigate('AddMeal', { editMeal: meal, editDate: selectedDate });
-          },
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (user) {
-              await removeMealFromLog(user.uid, selectedDate, meal);
-              loadData();
-            }
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+    setSelectedMealForOptions(meal);
+    setMealOptionsVisible(true);
   };
 
   // Find max calories for chart scaling
@@ -590,6 +572,60 @@ export default function HistoryScreen() {
       </View>
 
       <View style={{ height: 40 }} />
+
+      <Modal
+        visible={mealOptionsVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setMealOptionsVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setMealOptionsVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Meal Options</Text>
+            {selectedMealForOptions && (
+              <Text style={styles.modalSubtitle}>
+                What would you like to do with {selectedMealForOptions.name}?
+              </Text>
+            )}
+
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.editBtn]}
+              onPress={() => {
+                if (selectedMealForOptions) {
+                  setMealOptionsVisible(false);
+                  (navigation as any).navigate('AddMeal', { editMeal: selectedMealForOptions, editDate: selectedDate });
+                }
+              }}
+            >
+              <Text style={styles.editBtnText}>✏️ Edit Quantity</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.deleteBtn]}
+              onPress={async () => {
+                if (selectedMealForOptions && user) {
+                  setMealOptionsVisible(false);
+                  await removeMealFromLog(user.uid, selectedDate, selectedMealForOptions);
+                  loadData();
+                }
+              }}
+            >
+              <Text style={styles.deleteBtnText}>🗑️ Delete Meal</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalBtn, styles.cancelBtn]}
+              onPress={() => setMealOptionsVisible(false)}
+            >
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
@@ -827,4 +863,76 @@ const styles = StyleSheet.create({
   },
   bar: { borderRadius: 8, minHeight: 2 },
   barLabel: { fontSize: 10, color: Colors.textSecondary, marginTop: 6, fontWeight: '600' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: Colors.card,
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+    alignItems: 'center',
+    shadowColor: Colors.shadowColor,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.44,
+    shadowRadius: 10.32,
+    elevation: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 24,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  modalBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  editBtn: {
+    backgroundColor: Colors.primary,
+  },
+  editBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  deleteBtn: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  deleteBtnText: {
+    color: Colors.error,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cancelBtn: {
+    backgroundColor: Colors.surface,
+    marginBottom: 0,
+  },
+  cancelBtnText: {
+    color: Colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

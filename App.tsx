@@ -81,7 +81,7 @@ function MainNavigator() {
         name="History"
         component={HistoryScreen}
         options={{
-          tabBarLabel: 'History',
+          tabBarLabel: 'Statistics',
           tabBarIcon: () => <Text style={{ fontSize: 22 }}>📊</Text>,
         }}
       />

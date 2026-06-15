@@ -130,6 +130,30 @@ export default function AddMealScreen() {
     }
   }, [route.params, selectedDate]);
 
+  // Listen to focus events to clear the editing state if no params are present
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (!route.params?.editMeal && !route.params?.scannedProduct && isEditing) {
+        setIsEditing(false);
+        setEditMealId(null);
+        setEditDate(null);
+        setFoodName('');
+        setCalories('');
+        setProtein('');
+        setCarbs('');
+        setFat('');
+        setSodium('');
+        setCholesterol('');
+        setSugars('');
+        setFiber('');
+        setQuantity('100');
+        setUnit('g');
+        setBaseNutrition(null);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, route.params, isEditing]);
+
   // Scale nutrition when quantity or unit changes
   useEffect(() => {
     if (baseNutrition) {
@@ -235,16 +259,30 @@ export default function AddMealScreen() {
       if (isEditing && route.params?.editMeal) {
         await editMealInLog(user.uid, date, route.params.editMeal, meal);
         Alert.alert('✅ Meal Updated!', `${meal.name} has been updated.`);
+        
+        // Reset and clear editing state
+        navigation.setParams({ editMeal: undefined, editDate: undefined, scannedProduct: undefined });
+        setIsEditing(false);
+        setEditMealId(null);
+        setEditDate(null);
+        setFoodName('');
+        setCalories('');
+        setProtein('');
+        setCarbs('');
+        setFat('');
+        setSodium('');
+        setCholesterol('');
+        setSugars('');
+        setFiber('');
+        setQuantity('100');
+        setUnit('g');
+        setBaseNutrition(null);
+        
         (navigation as any).navigate('History');
       } else {
         await addMealToLog(user.uid, date, meal);
         Alert.alert('✅ Meal Added!', `${meal.name} has been logged.`);
-      }
-      
-      const log = await getDailyLog(user.uid, date);
-      setDailyLog(log);
-
-      if (!isEditing) {
+        
         // Reset form
         setFoodName('');
         setCalories('');
@@ -255,9 +293,13 @@ export default function AddMealScreen() {
         setCholesterol('');
         setSugars('');
         setFiber('');
-        setQuantity('');
+        setQuantity('100');
+        setUnit('g');
         setBaseNutrition(null);
       }
+      
+      const log = await getDailyLog(user.uid, date);
+      setDailyLog(log);
     } catch (e) {
       Alert.alert('Error', 'Could not save meal. Try again.');
     } finally {
@@ -485,6 +527,33 @@ export default function AddMealScreen() {
               <Text style={styles.saveBtnText}>{isEditing ? 'Save Changes ✅' : 'Add Meal ✅'}</Text>
             )}
           </TouchableOpacity>
+
+          {isEditing && (
+            <TouchableOpacity 
+              style={[styles.saveBtn, { backgroundColor: Colors.surface, marginTop: 12, borderWidth: 1, borderColor: Colors.inputBorder }]} 
+              onPress={() => {
+                setIsEditing(false);
+                setEditMealId(null);
+                setEditDate(null);
+                setFoodName('');
+                setCalories('');
+                setProtein('');
+                setCarbs('');
+                setFat('');
+                setSodium('');
+                setCholesterol('');
+                setSugars('');
+                setFiber('');
+                setQuantity('100');
+                setUnit('g');
+                setBaseNutrition(null);
+                navigation.setParams({ editMeal: undefined, editDate: undefined, scannedProduct: undefined });
+                (navigation as any).navigate('History');
+              }}
+            >
+              <Text style={[styles.saveBtnText, { color: Colors.textSecondary }]}>Cancel Edit ❌</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={{ height: 40 }} />
