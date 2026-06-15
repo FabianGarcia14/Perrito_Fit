@@ -1,4 +1,4 @@
-# 🐶 Perrito Fit — Interactive Health & Nutrition Tracker
+# Perrito Fit — Interactive Health & Nutrition Tracker
 
 Perrito Fit is a beautiful, interactive mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase** (designed for human health tracking with a fun companion mascot). 
 
@@ -6,19 +6,19 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 ---
 
-## ✨ Features
+## Features
 
-- **🐾 Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
-- **🍎 Complete Meal & Macro Logger:** Track calories, proteins, carbs, and fats. Categorize by Breakfast, Lunch, Dinner, and Snacks.
-- **🔍 Barcode Scanner:** Scan product barcodes instantly using the **Open Food Facts API** to fetch nutritional values automatically.
-- **💧 Water Intake Tracker:** Set daily hydration targets and log water cup-by-cup (in oz).
-- **📉 Weight History & Progress:** Log daily weight changes to view your health progression.
-- **🔥 Interactive Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
-- **⚡ Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
+- **Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
+- **Complete Meal & Macro Logger:** Track calories, proteins, carbs, and fats. Categorize by Breakfast, Lunch, Dinner, and Snacks.
+- **Barcode Scanner:** Scan product barcodes instantly using the **Open Food Facts API** to fetch nutritional values automatically.
+- **Water Intake Tracker:** Set daily hydration targets and log water cup-by-cup (in oz).
+- **Weight History & Progress:** Log daily weight changes to view your health progression.
+- **Interactive Dashboard:** Visually engaging interface showing current daily macros, water, weight, and status.
+- **Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Framework:** [Expo](https://expo.dev/) (React Native for Native & Web)
 - **Language:** TypeScript
@@ -30,7 +30,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 Perrito_Fit/
@@ -55,7 +55,7 @@ Perrito_Fit/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 Follow these steps to run the application locally on your machine:
 
@@ -111,10 +111,10 @@ To export the web app bundle and deploy it to Firebase Hosting:
 
 ---
 
-## 📜 License
+## License
 
 Distributed under the MIT License. See [LICENSE](file:///c:/Inventos_AI/Perrito_Fit/LICENSE) for more details.
 
 ---
 
-*Made with ❤️ by the Perrito Fit team.*
+*Made with love by the Perrito Fit team.*
