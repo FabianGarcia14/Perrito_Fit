@@ -1,28 +1,32 @@
 // ─── Perrito Fit – Firebase Configuration ────────────────────────────────────
 
 import { initializeApp } from 'firebase/app';
-// @ts-ignore - getReactNativePersistence is exported from firebase/auth/react-native
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { Platform } from 'react-native';
+import { initializeAuth, browserLocalPersistence } from 'firebase/auth';
+// @ts-ignore
+import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // TODO: Replace with your actual Firebase project credentials
 const firebaseConfig = {
-  apiKey: "AIzaSyA0ALAFBGBx1T_G3c2FcZAYYExoKfxB2h4",
-  authDomain: "perrito-fit.firebaseapp.com",
-  projectId: "perrito-fit",
-  storageBucket: "perrito-fit.firebasestorage.app",
-  messagingSenderId: "467593143794",
-  appId: "1:467593143794:web:eb435794021a9fd863376b",
-  measurementId: "G-JYSK74064L"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 /** Firebase app instance */
 const app = initializeApp(firebaseConfig);
 
-/** Firebase Auth with React Native persistence (AsyncStorage) */
+/** Initialize Firebase Auth dynamically based on platform */
 const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
+  persistence: Platform.OS === 'web' 
+    ? browserLocalPersistence 
+    : getReactNativePersistence(AsyncStorage),
 });
 
 /** Cloud Firestore instance */

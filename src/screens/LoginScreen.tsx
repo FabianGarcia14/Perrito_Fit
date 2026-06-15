@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   StatusBar,
+  Image,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Colors } from '../theme/colors';
@@ -49,16 +50,17 @@ export default function LoginScreen({ navigation }: Props) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
 
-      {/* Decorative top glow */}
-      <View style={styles.glowCircle} />
-
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         {/* ── Branding ──────────────────────────── */}
         <View style={styles.branding}>
-          <Text style={styles.logo}>🐕</Text>
+          <Image 
+            source={require('../../assets/login_image.jpg')} 
+            style={styles.heroImage} 
+            resizeMode="cover" 
+          />
           <Text style={styles.title}>Perrito Fit</Text>
           <Text style={styles.subtitle}>
             Your fitness companions await!
@@ -129,15 +131,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  glowCircle: {
-    position: 'absolute',
-    top: -120,
-    alignSelf: 'center',
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    backgroundColor: Colors.primary,
-    opacity: 0.12,
+  heroImage: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 4,
+    borderColor: Colors.primary,
+    marginBottom: 24,
   },
   container: {
     flex: 1,
@@ -148,11 +148,8 @@ const styles = StyleSheet.create({
   /* Branding */
   branding: {
     alignItems: 'center',
-    marginBottom: 48,
-  },
-  logo: {
-    fontSize: 72,
-    marginBottom: 8,
+    marginBottom: 32,
+    marginTop: 40,
   },
   title: {
     fontSize: 36,

@@ -4,7 +4,7 @@
     "slug": "perrito-fit",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
@@ -12,14 +12,20 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0F0A1A",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "foregroundImage": "./assets/icon.jpg",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.jpg",
+      "bundler": "metro",
+      "name": "Perrito Fit",
+      "shortName": "Perrito Fit",
+      "themeColor": "#0F0A1A",
+      "backgroundColor": "#0F0A1A",
+      "display": "standalone"
     }
   }
 }

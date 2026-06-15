@@ -153,10 +153,14 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      {isAuthenticated ? <RootNavigator /> : <AuthNavigator />}
-      <StatusBar style="light" />
-    </NavigationContainer>
+    <View style={styles.rootWrapper}>
+      <View style={styles.appWrapper}>
+        <NavigationContainer>
+          {isAuthenticated ? <RootNavigator /> : <AuthNavigator />}
+          <StatusBar style="light" />
+        </NavigationContainer>
+      </View>
+    </View>
   );
 }
 
@@ -166,5 +170,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
+  },
+  rootWrapper: {
+    flex: 1,
+    backgroundColor: '#000',
+    alignItems: 'center',
+  },
+  appWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: Colors.background,
+    overflow: 'hidden',
   },
 });

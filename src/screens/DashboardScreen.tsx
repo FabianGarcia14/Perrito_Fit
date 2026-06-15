@@ -11,11 +11,12 @@ import {
   TextInput,
   RefreshControl,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStore } from '../store/useStore';
-import { addWater, updateWeight, updateMedications, getDailyLog, getMostRecentWeight } from '../services/firestoreService';
+import { addWater, updateWeight, updateMedications, updateCreatine, getDailyLog, getMostRecentWeight, updateFastingTimes } from '../services/firestoreService';
 import { Colors } from '../theme/colors';
 import CircularProgress from '../components/CircularProgress';
 import MacroCard from '../components/MacroCard';
@@ -70,6 +71,41 @@ export default function DashboardScreen() {
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [waterInput, setWaterInput] = useState('');
   const [recentWeight, setRecentWeight] = useState<{ weight: number; date: string } | null>(null);
+  const [fastingDuration, setFastingDuration] = useState('');
+  const [showFastingModal, setShowFastingModal] = useState(false);
+  const [lastMealInfo, setLastMealInfo] = useState<{ name: string; time: string; timeString: string } | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (dailyLog?.fastingStart && !dailyLog?.fastingEnd) {
+      // Fasting is active, update duration every second
+      const updateDuration = () => {
+        const start = new Date(dailyLog.fastingStart!).getTime();
+        const now = new Date().getTime();
+        const diff = now - start;
+        if (diff < 0) {
+          setFastingDuration('0h 0m');
+          return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        setFastingDuration(`${hours}h ${minutes}m`);
+      };
+      updateDuration();
+      interval = setInterval(updateDuration, 10000); // update every 10s to save battery
+    } else if (dailyLog?.fastingStart && dailyLog?.fastingEnd) {
+      // Fasting is completed
+      const start = new Date(dailyLog.fastingStart).getTime();
+      const end = new Date(dailyLog.fastingEnd).getTime();
+      const diff = end - start;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setFastingDuration(`${hours}h ${minutes}m`);
+    } else {
+      setFastingDuration('');
+    }
+    return () => clearInterval(interval);
+  }, [dailyLog?.fastingStart, dailyLog?.fastingEnd]);
 
   const goToPreviousDay = () => setSelectedDate(shiftDate(selectedDate, -1));
   const goToNextDay = () => setSelectedDate(shiftDate(selectedDate, 1));
@@ -130,6 +166,14 @@ export default function DashboardScreen() {
     setDailyLog(log);
   };
 
+  const handleToggleCreatine = async () => {
+    if (!user) return;
+    const newValue = !dailyLog?.creatineTaken;
+    await updateCreatine(user.uid, selectedDate, newValue);
+    const log = await getDailyLog(user.uid, selectedDate);
+    setDailyLog(log);
+  };
+
   const handleLogWeight = () => {
     Alert.prompt
       ? Alert.prompt('Log Weight', 'Enter your weight (lbs):', async (text) => {
@@ -154,6 +198,62 @@ export default function DashboardScreen() {
     }
     setShowWeightModal(false);
     setWeightInput('');
+  };
+
+  const startFasting = async (startTime: string) => {
+    if (!user) return;
+    await updateFastingTimes(user.uid, selectedDate, startTime, 'clear');
+    const log = await getDailyLog(user.uid, selectedDate);
+    setDailyLog(log);
+  };
+
+  const handleStartFasting = () => {
+    if (!user) return;
+    const lastMeal = dailyLog?.meals?.length
+      ? [...dailyLog.meals].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())[0]
+      : null;
+
+    if (lastMeal) {
+      const mealTime = new Date(lastMeal.time);
+      const timeString = mealTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setLastMealInfo({ name: lastMeal.name, time: lastMeal.time, timeString });
+      setShowFastingModal(true);
+    } else {
+      startFasting(new Date().toISOString());
+    }
+  };
+
+  const handleEndFasting = async () => {
+    if (!user) return;
+    await updateFastingTimes(user.uid, selectedDate, null, new Date().toISOString());
+    const log = await getDailyLog(user.uid, selectedDate);
+    setDailyLog(log);
+  };
+
+  const getFastingWarningText = (targetTimeStr?: string) => {
+    if (!targetTimeStr) return "Ready to start";
+    const [hours, minutes] = targetTimeStr.split(':').map(Number);
+    const targetDate = new Date();
+    targetDate.setHours(hours, minutes, 0, 0);
+    
+    const now = new Date();
+    const diff = now.getTime() - targetDate.getTime();
+    
+    if (diff > 0 && diff < 12 * 60 * 60 * 1000) { 
+      const diffHours = Math.floor(diff / (1000 * 60 * 60));
+      const diffMins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      if (diffHours === 0 && diffMins === 0) return "Start now";
+      return `Should've started ${diffHours}h ${diffMins}m ago`;
+    }
+    return "Ready to start";
+  };
+
+  const getWeightGoalText = (current?: number, goal?: number) => {
+    if (!current || !goal) return goal ? `Goal: ${goal} lbs` : "No goal set";
+    const diff = current - goal;
+    if (diff > 0) return `${diff.toFixed(1)} lbs above goal: ${goal} lbs`;
+    if (diff < 0) return `${Math.abs(diff).toFixed(1)} lbs below goal: ${goal} lbs`;
+    return `At goal: ${goal} lbs!`;
   };
 
   const waterGlasses = totals.waterIntake || 0;
@@ -259,7 +359,7 @@ export default function DashboardScreen() {
             placeholder="oz"
             placeholderTextColor={Colors.textSecondary}
             value={waterInput}
-            onChangeText={setWaterInput}
+            onChangeText={(text) => setWaterInput(text.replace(/[^0-9.]/g, ''))}
           />
           <TouchableOpacity style={[styles.addWaterBtn, { justifyContent: 'center' }]} onPress={() => handleAddWaterOz(parseFloat(waterInput) || 0)}>
             <Text style={styles.addWaterText}>Add</Text>
@@ -267,6 +367,80 @@ export default function DashboardScreen() {
           <TouchableOpacity style={[styles.addWaterBtn, { backgroundColor: Colors.surface, justifyContent: 'center' }]} onPress={() => handleAddWaterOz(-(parseFloat(waterInput) || 0))}>
             <Text style={[styles.addWaterText, { color: Colors.textSecondary }]}>Remove</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Fasting Tracker (Bitepal Style) */}
+      <View style={styles.bitepalCard}>
+        <View style={styles.bitepalRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.bitepalSubtitle}>Fasting</Text>
+            <Text style={styles.bitepalTitle}>
+              {!dailyLog?.fastingStart ? "Start your fast" : dailyLog?.fastingEnd ? "Fast Completed" : "Fasting..."}
+            </Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.bitepalActionBtn} 
+            onPress={!dailyLog?.fastingStart || dailyLog?.fastingEnd ? handleStartFasting : handleEndFasting}
+          >
+            <Text style={styles.bitepalActionText}>
+              {!dailyLog?.fastingStart || dailyLog?.fastingEnd ? "START" : "END"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bitepalFooter}>
+          {!dailyLog?.fastingStart ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+               <Text style={{ fontSize: 16, marginRight: 6 }}>⚠️</Text>
+               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{getFastingWarningText(goals.fastingStartTime)}</Text>
+            </View>
+          ) : !dailyLog?.fastingEnd ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+               <Text style={{ fontSize: 16, marginRight: 6 }}>⏱️</Text>
+               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{fastingDuration}</Text>
+            </View>
+          ) : (
+             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+               <Text style={{ fontSize: 16, marginRight: 6 }}>✅</Text>
+               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{fastingDuration}</Text>
+            </View>
+          )}
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.bitepalGoalText}>Goal: {goals.fastingHours || 14}h</Text>
+            <Text style={styles.bitepalGoalText}>•••</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Weight Tracker (Bitepal Style) */}
+      <View style={styles.bitepalCard}>
+        <View style={styles.bitepalRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.bitepalSubtitle}>Weight</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+              <Text style={styles.bitepalTitle}>{dailyLog?.currentWeight || recentWeight?.weight || '--'}</Text>
+              <Text style={[styles.bitepalSubtitle, { marginLeft: 8, fontSize: 24, marginBottom: 0 }]}>lbs</Text>
+            </View>
+          </View>
+          
+          <TouchableOpacity 
+            style={styles.bitepalActionBtn} 
+            onPress={handleLogWeight}
+          >
+            <Text style={[styles.bitepalActionText, { fontSize: 32 }]}>+</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bitepalFooter}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+            <Text style={styles.bitepalGoalText}>
+              {getWeightGoalText(dailyLog?.currentWeight || recentWeight?.weight, goals.weight)}
+            </Text>
+            <Text style={styles.bitepalGoalText}>•••</Text>
+          </View>
         </View>
       </View>
 
@@ -279,6 +453,19 @@ export default function DashboardScreen() {
           </View>
           <View style={[styles.medsCheck, dailyLog?.medicationsTaken && styles.medsCheckActive]}>
             <Text style={styles.medsCheckText}>{dailyLog?.medicationsTaken ? '✓' : ''}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Creatine Tracker */}
+      <View style={styles.medsCard}>
+        <TouchableOpacity style={styles.medsRow} onPress={handleToggleCreatine}>
+          <View style={styles.medsLeft}>
+            <Text style={styles.medsEmoji}>💪</Text>
+            <Text style={styles.medsLabel}>Creatine Taken</Text>
+          </View>
+          <View style={[styles.medsCheck, dailyLog?.creatineTaken && styles.medsCheckActive]}>
+            <Text style={styles.medsCheckText}>{dailyLog?.creatineTaken ? '✓' : ''}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -324,15 +511,42 @@ export default function DashboardScreen() {
         </View>
       )}
 
-      {/* Current Weight Display */}
-      {(dailyLog?.currentWeight || recentWeight) && (
-        <View style={styles.weightDisplay}>
-          <Text style={styles.weightLabel}>
-            {dailyLog?.currentWeight ? "Today's Weight" : `Last tracked on ${formatDateDisplay(recentWeight!.date)}`}
+      {/* Fasting Modal */}
+      {showFastingModal && lastMealInfo && (
+        <View style={styles.fastingModal}>
+          <Text style={styles.fastingModalTitle}>Start Fasting ⏳</Text>
+          <Text style={styles.fastingModalDesc}>
+            We found your last meal: <Text style={{ fontWeight: '700' }}>{lastMealInfo.name}</Text> at {lastMealInfo.timeString}.
           </Text>
-          <Text style={styles.weightValue}>
-            {dailyLog?.currentWeight || recentWeight?.weight} lbs
+          <Text style={styles.fastingModalQuestion}>
+            Would you like to start fasting from your last meal time, or start right now?
           </Text>
+          <View style={styles.fastingModalBtns}>
+            <TouchableOpacity 
+              style={[styles.fastingModalBtn, { backgroundColor: Colors.surface }]} 
+              onPress={() => setShowFastingModal(false)}
+            >
+              <Text style={{ color: Colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.fastingModalBtn, { backgroundColor: Colors.warning + '20' }]} 
+              onPress={() => {
+                startFasting(new Date().toISOString());
+                setShowFastingModal(false);
+              }}
+            >
+              <Text style={{ color: Colors.warning, fontWeight: '700' }}>Start Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.fastingModalBtn, { backgroundColor: Colors.primary }]} 
+              onPress={() => {
+                startFasting(lastMealInfo.time);
+                setShowFastingModal(false);
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700' }}>From Last Meal</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -440,6 +654,42 @@ const styles = StyleSheet.create({
   waterBtnRow: {
     flexDirection: 'row',
     gap: 10,
+  },
+
+  // Fasting
+  fastingCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  fastingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  fastingCount: { fontSize: 16, color: Colors.primary, fontWeight: '700' },
+  fastingCompletedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
+  fastingCompletedText: { color: Colors.success, fontWeight: '700', fontSize: 16 },
+
+  // Fasting Modal
+  fastingModal: {
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  fastingModalTitle: { fontSize: 18, fontWeight: '700', color: Colors.text, marginBottom: 8 },
+  fastingModalDesc: { fontSize: 14, color: Colors.textSecondary, marginBottom: 8 },
+  fastingModalQuestion: { fontSize: 14, color: Colors.text, marginBottom: 16 },
+  fastingModalBtns: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
+  fastingModalBtn: {
+    flex: 1,
+    minWidth: 80,
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Medications
@@ -564,5 +814,53 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.primary,
     marginTop: 2,
+  },
+  
+  // Bitepal Card Styles
+  bitepalCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 32,
+    padding: 24,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  bitepalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bitepalSubtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  bitepalTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  bitepalActionBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 16,
+  },
+  bitepalActionText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  bitepalFooter: {
+    marginTop: 20,
+  },
+  bitepalGoalText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
 });

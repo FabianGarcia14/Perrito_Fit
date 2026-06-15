@@ -13,6 +13,7 @@ import {
   increment,
   orderBy,
   limit,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import {
@@ -297,6 +298,73 @@ export async function updateMedications(
     await setDoc(ref, newLog);
   } else {
     await updateDoc(ref, { medicationsTaken: taken });
+  }
+}
+
+/**
+ * Toggle the creatine status for a given day.
+ */
+export async function updateCreatine(
+  uid: string,
+  date: string,
+  taken: boolean,
+): Promise<void> {
+  const ref = dailyLogRef(uid, date);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    const newLog: DailyLog = {
+      date,
+      meals: [],
+      totals: { ...EMPTY_TOTALS },
+      creatineTaken: taken,
+    };
+    await setDoc(ref, newLog);
+  } else {
+    await updateDoc(ref, { creatineTaken: taken });
+  }
+}
+
+/**
+ * Update the fasting start and end times for a given day.
+ */
+export async function updateFastingTimes(
+  uid: string,
+  date: string,
+  fastingStart: string | null,
+  fastingEnd: string | null,
+): Promise<void> {
+  const ref = dailyLogRef(uid, date);
+  const snap = await getDoc(ref);
+
+  const updates: Partial<DailyLog> = {};
+  if (fastingStart !== null) updates.fastingStart = fastingStart;
+  if (fastingEnd !== null) updates.fastingEnd = fastingEnd;
+  
+  if (!snap.exists()) {
+    const newLog: DailyLog = {
+      date,
+      meals: [],
+      totals: { ...EMPTY_TOTALS },
+      ...updates,
+    };
+    await setDoc(ref, newLog);
+  } else {
+    // If setting to null, we could use deleteField() from firestore, but
+    // for our interface, just omitting it or setting it to undefined/null works if merged properly,
+    // though updateDoc doesn't accept undefined. 
+    // We can just construct an update object.
+    const updateObj: Record<string, any> = {};
+    if (fastingStart !== null) {
+      updateObj.fastingStart = fastingStart === 'clear' ? deleteField() : fastingStart;
+    }
+    if (fastingEnd !== null) {
+      updateObj.fastingEnd = fastingEnd === 'clear' ? deleteField() : fastingEnd;
+    }
+    
+    if (Object.keys(updateObj).length > 0) {
+      await updateDoc(ref, updateObj);
+    }
   }
 }
 

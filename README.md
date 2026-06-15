@@ -20,10 +20,10 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 ## 🛠️ Tech Stack
 
-- **Framework:** [Expo](https://expo.dev/) (React Native)
+- **Framework:** [Expo](https://expo.dev/) (React Native for Native & Web)
 - **Language:** TypeScript
 - **State Management:** [Zustand](https://github.com/pmndrs/zustand)
-- **Database & Auth:** [Firebase Auth](https://firebase.google.com/docs/auth) & [Cloud Firestore](https://firebase.google.com/docs/firestore)
+- **Database, Auth & Hosting:** [Firebase Auth](https://firebase.google.com/docs/auth), [Cloud Firestore](https://firebase.google.com/docs/firestore) & [Firebase Hosting](https://firebase.google.com/docs/hosting)
 - **API Integrations:** [Open Food Facts API](https://world.openfoodfacts.org/data) (Barcode lookup)
 - **Navigation:** [React Navigation](https://reactnavigation.org/) (Native Stack & Bottom Tabs)
 - **Styling & UI:** Expo Linear Gradient, React Native Vector Icons, and a cohesive, vibrant modern dark/light system theme.
@@ -35,6 +35,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 ```text
 Perrito_Fit/
 ├── assets/             # Images, icons, fonts, and Henni mascot assets
+├── public/             # Web public assets (favicon, apple-touch-icon)
 ├── src/
 │   ├── components/     # Reusable UI widgets (Macro cards, input fields, custom buttons)
 │   ├── config/         # Firebase initialization and configuration
@@ -46,7 +47,10 @@ Perrito_Fit/
 │   └── utils/          # Formatting helpers, date builders, and calculations
 ├── App.tsx             # Main entry point & root navigator configuration
 ├── app.json            # Expo configuration profile
-└── package.json        # Dependencies & package scripts
+├── firebase.json       # Firebase CLI hosting and rules configuration
+├── firestore.rules     # Cloud Firestore security rules
+├── package.json        # Dependencies & package scripts
+└── README.md           # Project documentation
 ```
 
 ---
@@ -73,7 +77,8 @@ npm install
 The project is configured with a default Firebase App. If you want to use your own Firebase database:
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
 2. Enable **Authentication** (Email/Password) and **Firestore Database**.
-3. Update [src/config/firebase.ts](file:///c:/Inventos_AI/Perrito_Fit/src/config/firebase.ts) with your credentials:
+3. Deploy the Firestore security rules defined in [firestore.rules](file:///c:/Inventos_AI/Perrito_Fit/firestore.rules).
+4. Update [src/config/firebase.ts](file:///c:/Inventos_AI/Perrito_Fit/src/config/firebase.ts) with your credentials:
    ```typescript
    const firebaseConfig = {
      apiKey: "YOUR_API_KEY",
@@ -88,9 +93,21 @@ The project is configured with a default Firebase App. If you want to use your o
 ### 4. Run the Dev Server
 Start the Metro bundler:
 ```bash
+# For mobile platforms (iOS/Android)
 npm run start
+
+# For web platform
+npm run web
 ```
-Use the QR code in your terminal to open it in **Expo Go** (iOS/Android), or press `a` for Android Emulator / `i` for iOS Simulator.
+For mobile, use the QR code in your terminal to open it in **Expo Go** (iOS/Android), or press `a` for Android Emulator / `i` for iOS Simulator.
+
+### 5. Build and Deploy Web App (Firebase Hosting)
+To export the web app bundle and deploy it to Firebase Hosting:
+1. Ensure the [Firebase CLI](https://firebase.google.com/docs/cli) is installed and you've logged in (`firebase login`).
+2. Build and deploy with:
+   ```bash
+   npm run deploy:web
+   ```
 
 ---
 

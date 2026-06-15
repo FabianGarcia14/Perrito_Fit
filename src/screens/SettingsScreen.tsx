@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Platform,
+  Modal,
 } from 'react-native';
 import { useStore } from '../store/useStore';
-import { updateGoals, logoutUser } from '../services/authService';
+import { updateGoals, logoutUser, changeUserPassword } from '../services/authService';
 import { Colors } from '../theme/colors';
 
 export default function SettingsScreen() {
@@ -25,7 +27,42 @@ export default function SettingsScreen() {
   const [cholesterol, setCholesterol] = useState(String(user?.goals.cholesterol ?? 300));
   const [sugars, setSugars] = useState(String(user?.goals.sugars ?? 50));
   const [fiber, setFiber] = useState(String(user?.goals.fiber ?? 28));
+  const [weightGoal, setWeightGoal] = useState(String(user?.goals.weight ?? 150));
+  const [fastingHours, setFastingHours] = useState(String(user?.goals.fastingHours ?? 14));
+  const [fastingStartTime, setFastingStartTime] = useState(user?.goals.fastingStartTime ?? '20:00');
   const [saving, setSaving] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      Platform.OS === 'web' ? window.alert('Please enter both current and new passwords.') : Alert.alert('Error', 'Please enter both current and new passwords.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      Platform.OS === 'web' ? window.alert('Password must be at least 8 characters long.') : Alert.alert('Error', 'Password must be at least 8 characters long.');
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      await changeUserPassword(currentPassword, newPassword);
+      Platform.OS === 'web' ? window.alert('Your password has been changed successfully.') : Alert.alert('Success', 'Your password has been changed successfully.');
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (e: any) {
+      let msg = e.message || 'Failed to change password.';
+      if (msg.includes('auth/invalid-credential')) {
+        msg = 'Incorrect current password.';
+      }
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+    } finally {
+      setChangingPassword(false);
+      setShowPasswordModal(false);
+    }
+  };
 
   const handleSaveGoals = async () => {
     if (!user) return;
@@ -41,18 +78,27 @@ export default function SettingsScreen() {
         cholesterol: parseInt(cholesterol) || 300,
         sugars: parseInt(sugars) || 50,
         fiber: parseInt(fiber) || 28,
+        weight: parseFloat(weightGoal) || 150,
+        fastingHours: parseInt(fastingHours) || 14,
+        fastingStartTime: fastingStartTime || '20:00',
       };
       await updateGoals(user.uid, newGoals);
       setUser({ ...user, goals: newGoals });
-      Alert.alert('✅ Saved!', 'Your goals have been updated.');
+      Platform.OS === 'web' ? window.alert('Your goals have been updated.') : Alert.alert('✅ Saved!', 'Your goals have been updated.');
     } catch (e) {
-      Alert.alert('Error', 'Could not save goals. Try again.');
+      Platform.OS === 'web' ? window.alert('Could not save goals. Try again.') : Alert.alert('Error', 'Could not save goals. Try again.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleSignOut = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        logoutUser();
+      }
+      return;
+    }
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -83,6 +129,7 @@ export default function SettingsScreen() {
           </View>
         </View>
       </View>
+
 
       {/* Goals */}
       <View style={styles.card}>
@@ -178,6 +225,37 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>⚖️ Target Weight (lbs)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={weightGoal}
+            onChangeText={setWeightGoal}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>⏳ Fasting Goal (hrs)</Text>
+          <TextInput
+            style={styles.goalInput}
+            keyboardType="numeric"
+            value={fastingHours}
+            onChangeText={setFastingHours}
+          />
+        </View>
+
+        <View style={styles.goalRow}>
+          <Text style={styles.goalLabel}>⏰ Fasting Start Time</Text>
+          <TextInput
+            style={styles.goalInput}
+            value={fastingStartTime}
+            onChangeText={setFastingStartTime}
+            placeholder="20:00"
+            placeholderTextColor={Colors.textSecondary}
+          />
+        </View>
+
         <TouchableOpacity style={styles.saveBtn} onPress={handleSaveGoals} disabled={saving}>
           {saving ? (
             <ActivityIndicator color="#fff" />
@@ -186,6 +264,56 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Change Password Link */}
+      <TouchableOpacity style={styles.linkCard} onPress={() => setShowPasswordModal(true)}>
+        <Text style={styles.linkText}>🔒 Change Password</Text>
+      </TouchableOpacity>
+
+      <Modal visible={showPasswordModal} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Change Password</Text>
+
+            <View style={styles.goalRow}>
+              <Text style={styles.goalLabel}>Current Password</Text>
+              <TextInput
+                style={styles.textInput}
+                secureTextEntry
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="••••••••"
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.goalRow}>
+              <Text style={styles.goalLabel}>New Password</Text>
+              <TextInput
+                style={styles.textInput}
+                secureTextEntry
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="••••••••"
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPasswordModal(false)}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveBtn, { flex: 1, marginTop: 0 }]} onPress={handleChangePassword} disabled={changingPassword}>
+                {changingPassword ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Update</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Sign Out */}
       <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
@@ -256,6 +384,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.inputBorder,
   },
+  textInput: {
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    color: Colors.text,
+    fontSize: 16,
+    flex: 2,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+  },
 
   // Save
   saveBtn: {
@@ -284,4 +423,36 @@ const styles = StyleSheet.create({
   appName: { fontSize: 18, fontWeight: '700', color: Colors.textSecondary },
   appVersion: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
   appMascots: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
+
+  // Link Card
+  linkCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+    alignItems: 'center',
+  },
+  linkText: { color: Colors.text, fontSize: 16, fontWeight: '700' },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: Colors.card,
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: Colors.text, marginBottom: 20, textAlign: 'center' },
+  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  cancelBtn: { flex: 1, backgroundColor: Colors.surface, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  cancelBtnText: { color: Colors.textSecondary, fontSize: 16, fontWeight: '700' },
 });

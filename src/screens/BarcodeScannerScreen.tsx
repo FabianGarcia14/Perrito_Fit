@@ -8,6 +8,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
@@ -16,7 +17,8 @@ import { Colors } from '../theme/colors';
 import { fetchProductByBarcode } from '../services/openFoodFactsService';
 import type { RootStackParamList, OpenFoodFactsResult } from '../types';
 
-const { width, height } = Dimensions.get('window');
+const { width: windowWidth, height } = Dimensions.get('window');
+const width = Math.min(windowWidth, 480);
 const SCAN_AREA_SIZE = width * 0.7;
 
 type BarcodeScannerNav = NativeStackNavigationProp<RootStackParamList, 'BarcodeScanner'>;
@@ -64,6 +66,24 @@ export default function BarcodeScannerScreen() {
     setScanned(false);
     setProduct(null);
   };
+
+  // Web fallback
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permissionCard}>
+          <Text style={styles.permissionEmoji}>🌐</Text>
+          <Text style={styles.permissionTitle}>Scanner Not Available</Text>
+          <Text style={styles.permissionText}>
+            Barcode scanning is currently only supported on the mobile app.
+          </Text>
+          <TouchableOpacity style={styles.permissionBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.permissionBtnText}>Enter Manually</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   // Permission not yet determined
   if (!permission) {

@@ -19,6 +19,9 @@ export interface Goals {
   cholesterol?: number;   // mg
   sugars?: number;        // g
   fiber?: number;         // g
+  weight?: number;        // lbs
+  fastingHours?: number;  // hours
+  fastingStartTime?: string; // HH:mm format (e.g. '20:00')
 }
 
 // Keep NutritionGoals as alias for backward compatibility
@@ -79,6 +82,9 @@ export interface DailyLog {
   currentWeight?: number;
   meals: Meal[];
   medicationsTaken?: boolean;
+  creatineTaken?: boolean;
+  fastingStart?: string; // ISO-8601 timestamp
+  fastingEnd?: string;   // ISO-8601 timestamp
 }
 
 // Keep DailySummary as alias for backward compatibility

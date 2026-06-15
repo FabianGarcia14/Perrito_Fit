@@ -5,6 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
   type User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -22,6 +25,9 @@ const DEFAULT_GOALS: Goals = {
   cholesterol: 300,
   sugars: 50,
   fiber: 28,
+  weight: 150,
+  fastingHours: 14,
+  fastingStartTime: '20:00',
 };
 
 /**
@@ -106,4 +112,16 @@ export async function logoutUser(): Promise<void> {
  */
 export function getCurrentUser(): User | null {
   return auth.currentUser;
+}
+
+/**
+ * Change the user's password safely by re-authenticating first.
+ */
+export async function changeUserPassword(currentPassword: string, newPassword: string): Promise<void> {
+  const user = auth.currentUser;
+  if (!user || !user.email) throw new Error('No authenticated user');
+
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 }

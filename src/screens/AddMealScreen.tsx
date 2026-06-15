@@ -22,6 +22,15 @@ import type { Meal, MealType, USDAFoodResult, RootStackParamList, MainTabParamLi
 
 const MEAL_TYPES: MealType[] = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
 
+const UNIT_OPTIONS = ['g', 'oz', 'ml', 'cups', 'lbs'];
+const UNIT_CONVERSIONS: Record<string, number> = {
+  g: 1,
+  ml: 1,
+  oz: 28.3495,
+  lbs: 453.592,
+  cups: 240, // Approximate for liquids/solids
+};
+
 const USDA_API_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 const API_KEY = 'DEMO_KEY';
 
@@ -121,12 +130,15 @@ export default function AddMealScreen() {
     }
   }, [route.params, selectedDate]);
 
-  // Scale nutrition when quantity changes
+  // Scale nutrition when quantity or unit changes
   useEffect(() => {
     if (baseNutrition) {
       const q = parseFloat(quantity);
       if (!isNaN(q) && q >= 0 && baseNutrition.quantity > 0) {
-        const ratio = q / baseNutrition.quantity;
+        const multiplier = UNIT_CONVERSIONS[unit] || 1;
+        const quantityInGrams = q * multiplier;
+        const ratio = quantityInGrams / baseNutrition.quantity;
+        
         setCalories((baseNutrition.calories * ratio).toFixed(1).replace(/\.0$/, ''));
         setProtein((baseNutrition.macros.protein * ratio).toFixed(1).replace(/\.0$/, ''));
         setCarbs((baseNutrition.macros.carbs * ratio).toFixed(1).replace(/\.0$/, ''));
@@ -138,7 +150,7 @@ export default function AddMealScreen() {
         if (baseNutrition.macros.fiber !== undefined) setFiber((baseNutrition.macros.fiber * ratio).toFixed(1).replace(/\.0$/, ''));
       }
     }
-  }, [quantity, baseNutrition]);
+  }, [quantity, unit, baseNutrition]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -211,9 +223,9 @@ export default function AddMealScreen() {
       },
       time: new Date().toISOString(),
       type: mealType,
+      quantity: parseFloat(quantity) || 0,
+      unit: unit,
       ...(baseNutrition ? {
-        quantity: parseFloat(quantity) || 0,
-        unit,
         baseNutrition,
       } : {})
     };
@@ -315,21 +327,39 @@ export default function AddMealScreen() {
             onChangeText={setFoodName}
           />
 
-          {baseNutrition && (
-            <View style={{ marginTop: 10, backgroundColor: Colors.primary + '10', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: Colors.primary + '30' }}>
-              <Text style={[styles.label, { marginTop: 0, color: Colors.primary }]}>Amount Consumed ({unit})</Text>
+          <View style={{ marginTop: 10, backgroundColor: baseNutrition ? Colors.primary + '10' : Colors.surface, padding: 12, borderRadius: 12, borderWidth: 1, borderColor: baseNutrition ? Colors.primary + '30' : Colors.surface }}>
+            <Text style={[styles.label, { marginTop: 0, color: baseNutrition ? Colors.primary : Colors.textSecondary }]}>Amount Consumed</Text>
+            
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 4 }}>
               <TextInput
-                style={[styles.input, { borderColor: Colors.primary, backgroundColor: Colors.surface }]}
+                style={[styles.input, { flex: 1, borderColor: baseNutrition ? Colors.primary : Colors.inputBorder, backgroundColor: Colors.inputBackground, marginTop: 0 }]}
                 keyboardType="numeric"
                 value={quantity}
                 onChangeText={setQuantity}
-                placeholder={`e.g. ${baseNutrition.quantity}`}
+                placeholder={baseNutrition ? `e.g. ${baseNutrition.quantity}` : "e.g. 100"}
               />
-              <Text style={{ fontSize: 11, color: Colors.textSecondary, marginTop: 4 }}>
-                Macros will automatically scale based on {baseNutrition.quantity}{unit} reference.
-              </Text>
             </View>
-          )}
+
+            <View style={styles.unitRow}>
+              {UNIT_OPTIONS.map((u) => (
+                <TouchableOpacity
+                  key={u}
+                  style={[styles.unitBtn, unit === u && styles.unitBtnActive]}
+                  onPress={() => setUnit(u)}
+                >
+                  <Text style={[styles.unitBtnText, unit === u && styles.unitBtnTextActive]}>
+                    {u}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {baseNutrition && (
+              <Text style={{ fontSize: 11, color: Colors.textSecondary, marginTop: 10 }}>
+                Macros will automatically scale based on {baseNutrition.quantity}g reference.
+              </Text>
+            )}
+          </View>
 
           <View style={styles.row}>
             <View style={styles.halfInput}>
@@ -542,6 +572,20 @@ const styles = StyleSheet.create({
   mealTypeBtnActive: { backgroundColor: Colors.primary },
   mealTypeText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
   mealTypeTextActive: { color: Colors.text },
+
+  // Unit Type
+  unitRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
+  unitBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+  },
+  unitBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  unitBtnText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
+  unitBtnTextActive: { color: '#fff' },
 
   // Save
   saveBtn: {
