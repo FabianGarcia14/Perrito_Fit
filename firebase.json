@@ -3,6 +3,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "site": "chenna-fit",
     "public": "dist",
     "ignore": [
       "firebase.json",
