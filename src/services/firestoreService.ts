@@ -23,8 +23,7 @@ import {
   DailyTotals,
   Meal,
 } from '../types';
-import { getLocalDateString } from '../utils/dateUtils';
-
+import { getLocalDateString, shiftDate } from '../utils/dateUtils';
 // ────────────────────────────── User Profile ─────────────────────────────────
 
 /**
@@ -50,6 +49,42 @@ export async function updateUserGoals(
     }
   }
   await updateDoc(doc(db, 'users', uid), updateMap);
+}
+
+/**
+ * Updates the user's daily logging streak.
+ */
+export async function updateStreak(uid: string, logDate: string): Promise<void> {
+  const profileRef = doc(db, 'users', uid);
+  const snap = await getDoc(profileRef);
+  if (!snap.exists()) return;
+
+  const profile = snap.data() as UserProfile;
+  const currentStreakInfo = profile.streak || { current: 0, longest: 0, lastLogDate: '' };
+  
+  const { current, longest, lastLogDate } = currentStreakInfo;
+
+  // If the log date is older or same as lastLogDate, no streak change
+  if (lastLogDate && logDate <= lastLogDate) return;
+
+  const yesterday = shiftDate(logDate, -1);
+  let newCurrent = current;
+
+  if (lastLogDate === yesterday) {
+    // Streak continues
+    newCurrent += 1;
+  } else {
+    // Streak resets
+    newCurrent = 1;
+  }
+
+  const newLongest = Math.max(longest, newCurrent);
+
+  await updateDoc(profileRef, {
+    'streak.current': newCurrent,
+    'streak.longest': newLongest,
+    'streak.lastLogDate': logDate,
+  });
 }
 
 // ──────────────────────────── Daily Log Helpers ──────────────────────────────
@@ -140,6 +175,9 @@ export async function addMealToLog(
       'totals.fiber': increment(meal.macros.fiber || 0),
     });
   }
+
+  // Update streak
+  await updateStreak(uid, date);
 }
 
 /**
@@ -251,6 +289,9 @@ export async function addWater(
       'totals.waterIntake': increment(oz),
     });
   }
+
+  // Update streak
+  await updateStreak(uid, date);
 }
 
 /**

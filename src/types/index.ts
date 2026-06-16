@@ -7,6 +7,11 @@ export interface UserProfile {
   displayName: string;
   createdAt: string; // ISO-8601 timestamp
   goals: Goals;
+  streak?: {
+    current: number;
+    longest: number;
+    lastLogDate: string; // YYYY-MM-DD
+  };
 }
 
 export interface Goals {

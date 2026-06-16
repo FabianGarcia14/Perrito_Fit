@@ -88,6 +88,8 @@ export default function HistoryScreen() {
   const [weightLogs, setWeightLogs] = useState<DailyLog[]>([]);
   const [proteinLogs, setProteinLogs] = useState<DailyLog[]>([]);
   const [weeklyLogs, setWeeklyLogs] = useState<DailyLog[]>([]);
+  const [fastingFilter, setFastingFilter] = useState<FilterType>('Week');
+  const [fastingLogs, setFastingLogs] = useState<DailyLog[]>([]);
 
   const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [selectedLog, setSelectedLog] = useState<DailyLog | null>(null);
@@ -95,6 +97,7 @@ export default function HistoryScreen() {
   const calDates = React.useMemo(() => getChartDates(calFilter), [calFilter]);
   const weightDates = React.useMemo(() => getChartDates(weightFilter), [weightFilter]);
   const proteinDates = React.useMemo(() => getChartDates(proteinFilter), [proteinFilter]);
+  const fastingDates = React.useMemo(() => getChartDates(fastingFilter), [fastingFilter]);
   const weekDates = React.useMemo(() => getChartDates('Week'), []);
 
   const [loading, setLoading] = useState(false);
@@ -104,7 +107,7 @@ export default function HistoryScreen() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDate, calFilter, weightFilter, proteinFilter]);
+  }, [selectedDate, calFilter, weightFilter, proteinFilter, fastingFilter]);
 
   const loadData = async () => {
     if (!user) return;
@@ -119,19 +122,22 @@ export default function HistoryScreen() {
       const weightRange = getFetchRange(weightDates);
       const proteinRange = getFetchRange(proteinDates);
       const weekRange = getFetchRange(weekDates);
+      const fastingRange = getFetchRange(fastingDates);
 
-      const [log, cLogs, wLogs, pLogs, wkLogs] = await Promise.all([
+      const [log, cLogs, wLogs, pLogs, wkLogs, fLogs] = await Promise.all([
         getDailyLog(user.uid, selectedDate),
         getLogsBetweenDates(user.uid, calRange.start, calRange.end),
         getLogsBetweenDates(user.uid, weightRange.start, weightRange.end),
         getLogsBetweenDates(user.uid, proteinRange.start, proteinRange.end),
         getLogsBetweenDates(user.uid, weekRange.start, weekRange.end),
+        getLogsBetweenDates(user.uid, fastingRange.start, fastingRange.end),
       ]);
       setSelectedLog(log);
       setCalLogs(cLogs);
       setWeightLogs(wLogs);
       setProteinLogs(pLogs);
       setWeeklyLogs(wkLogs);
+      setFastingLogs(fLogs);
     } catch (e) {
       console.error('Error loading history:', e);
     } finally {
@@ -572,6 +578,70 @@ export default function HistoryScreen() {
                         ]}
                       />
                     ) : null}
+                  </View>
+                  <Text style={styles.barLabel}>{label}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      {/* Fasting History Chart */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartTitle}>Fasting History ⏳</Text>
+          <View style={styles.filterRow}>
+            <TouchableOpacity onPress={() => setFastingFilter('Week')} style={fastingFilter === 'Week' ? styles.filterBtnActive : styles.filterBtn}>
+              <Text style={fastingFilter === 'Week' ? styles.filterTextActive : styles.filterText}>Week</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setFastingFilter('Month')} style={fastingFilter === 'Month' ? styles.filterBtnActive : styles.filterBtn}>
+              <Text style={fastingFilter === 'Month' ? styles.filterTextActive : styles.filterText}>Month</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setFastingFilter('Year')} style={fastingFilter === 'Year' ? styles.filterBtnActive : styles.filterBtn}>
+              <Text style={fastingFilter === 'Year' ? styles.filterTextActive : styles.filterText}>Year</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <View style={[styles.chartContainer, { width: '100%' }]}>
+          {/* Goal line */}
+          <View
+            style={[
+              styles.goalLine,
+              { bottom: `${((user?.goals?.fastingHours || 14) / 24) * 100}%`, backgroundColor: Colors.primary + '60' },
+            ]}
+          >
+            <Text style={[styles.goalLineLabel, { color: Colors.primary }]}>Goal: {user?.goals?.fastingHours || 14}h</Text>
+          </View>
+          <View style={[styles.barsRow, { gap: fastingFilter === 'Week' ? 6 : fastingFilter === 'Month' ? 12 : 4 }]}>
+            {fastingDates.map(({ label, dateStr, rangeStart, rangeEnd }) => {
+              let fHours = 0;
+              if (fastingFilter === 'Week') {
+                const log = fastingLogs.find((l) => l.date === dateStr);
+                if (log?.fastingStart && log?.fastingEnd) {
+                  fHours = (new Date(log.fastingEnd).getTime() - new Date(log.fastingStart).getTime()) / (1000 * 60 * 60);
+                }
+              } else {
+                const logsInRange = fastingLogs.filter(l => l.date >= rangeStart && l.date <= rangeEnd && l.fastingStart && l.fastingEnd);
+                if (logsInRange.length > 0) {
+                  fHours = logsInRange.reduce((sum, l) => sum + ((new Date(l.fastingEnd!).getTime() - new Date(l.fastingStart!).getTime()) / (1000 * 60 * 60)), 0) / logsInRange.length;
+                }
+              }
+              const heightPct = (fHours / 24) * 100;
+              const isOver = fHours >= (user?.goals?.fastingHours || 14);
+              return (
+                <View key={dateStr} style={styles.barWrapper}>
+                  {(fastingFilter === 'Week' || fastingFilter === 'Month') && <Text style={styles.barValue}>{fHours > 0 ? fHours.toFixed(1) : ''}</Text>}
+                  <View style={[styles.barTrack, { width: fastingFilter === 'Week' ? '80%' : fastingFilter === 'Month' ? 24 : 12 }]}>
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: `${Math.min(heightPct, 100)}%`,
+                          backgroundColor: isOver ? Colors.primary : Colors.primaryLight,
+                        },
+                      ]}
+                    />
                   </View>
                   <Text style={styles.barLabel}>{label}</Text>
                 </View>

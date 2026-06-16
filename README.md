@@ -12,27 +12,32 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 | --- | --- | --- |
 | ![Login Page](assets/Screenshots/login_page.png) | ![Home Page](assets/Screenshots/homepage.png) | ![Add Meal Page](assets/Screenshots/add_meal_page.png) |
 
-| Statistics Page | Settings |
-| --- | --- |
-| ![Statistics Page](assets/Screenshots/statistics_page.png) | ![Settings](assets/Screenshots/settings.png) |
+| Statistics & Fasting | Fasting & Meal History | Settings |
+| --- | --- | --- |
+| ![Statistics & Fasting](assets/Screenshots/statistics_page1.png) | ![Fasting & Meal History](assets/Screenshots/statistics_page2.png) | ![Settings](assets/Screenshots/settings.png) |
 
 ---
 
 ## What's New
 
-- **Full Web Barcode Scanning:** Integrated `@zxing/library` to support live camera barcode scanning directly in web browsers alongside the existing native `expo-camera` implementation.
-- **Scrollable Product Details:** Enhanced the barcode result card to scroll gracefully on smaller screens.
+- **Daily Logging Streak:** Added an animated fire streak badge to the home screen header to encourage logging consistency. Automatically persists and calculates consecutive tracking days.
+- **Visual Fasting Tracker:** Integrated an interactive circular progress timer on the dashboard allowing users to start, stop, and track active fasts in real time.
+- **Fasting History Logs:** View details and trends of past fasting sessions alongside nutrition logs in the redesigned History tab.
+- **Water Quick-Presets:** Log common water amounts quickly with preset buttons (`+8 oz`, `+16 oz`, and `+40 oz`).
+- **Full Web Barcode Scanning:** Support for live camera barcode scanning directly in web browsers via `@zxing/library`.
 
 ---
 
 ## Features
 
 - **Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
+- **Daily logging Streak Counter:** An animated, vibrant fire streak badge showing consecutive days of logging activity (meals or water).
+- **Interactive Fasting Tracker:** A visual circular timer showing fasting progress with real-time feedback and session logging.
 - **Complete Meal & Macro Logger:** Track calories, proteins, carbs, fats, sodium, cholesterol, sugars, and fiber. Categorize by Breakfast, Lunch, Dinner, and Snacks.
 - **Barcode Scanner & Caching:** Scan product barcodes instantly on both native mobile (using `expo-camera`) and web browsers (using `@zxing/library` camera stream decoding). Integrates with the **Open Food Facts API**, custom database caching, and fallback manual entry.
-- **Water Intake Tracker:** Set daily hydration targets and log water intake with a flexible numeric input.
+- **Water Intake Tracker & Presets:** Set daily hydration targets, log water intake with a flexible numeric input, or use the dynamic `+8 oz`, `+16 oz`, and `+40 oz` quick-preset buttons.
 - **Statistics & Progress Charts:** Toggle weekly, monthly, and yearly bar charts for Calories, Protein, and Weight logs.
-- **Interactive Meal Manager:** Tap any logged meal to edit its quantity (which dynamically recalculates nutritional macros) or delete it directly from the Statistics page.
+- **Interactive Meal & Fasting Manager:** Tap any logged meal to edit its quantity (which dynamically recalculates nutritional macros) or delete it directly from the Statistics page. View and monitor past fasting history logs.
 - **Offline-First & Sync:** Clean state management using **Zustand** combined with local caching and online sync via **Firebase Authentication & Firestore**.
 
 ---

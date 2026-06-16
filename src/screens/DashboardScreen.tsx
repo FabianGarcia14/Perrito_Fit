@@ -16,8 +16,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStore } from '../store/useStore';
-import { addWater, updateWeight, updateMedications, updateCreatine, getDailyLog, getMostRecentWeight, updateFastingTimes } from '../services/firestoreService';
+import { addWater, updateWeight, updateMedications, updateCreatine, getDailyLog, getMostRecentWeight, updateFastingTimes, getUserProfile } from '../services/firestoreService';
 import { Colors } from '../theme/colors';
+import StreakBadge from '../components/StreakBadge';
 import CircularProgress from '../components/CircularProgress';
 import MacroCard from '../components/MacroCard';
 import type { MainTabParamList, MascotMood } from '../types';
@@ -65,7 +66,7 @@ type DashboardNav = BottomTabNavigationProp<MainTabParamList, 'Dashboard'>;
 
 export default function DashboardScreen() {
   const navigation = useNavigation<DashboardNav>();
-  const { user, dailyLog, setDailyLog, getMascotState, selectedDate, setSelectedDate, isLoading, setLoading } = useStore();
+  const { user, setUser, dailyLog, setDailyLog, getMascotState, selectedDate, setSelectedDate, isLoading, setLoading } = useStore();
   const [refreshing, setRefreshing] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [showWeightModal, setShowWeightModal] = useState(false);
@@ -145,16 +146,24 @@ export default function DashboardScreen() {
     if (!user) return;
     setRefreshing(true);
     const today = selectedDate;
-    const log = await getDailyLog(user.uid, today);
+    const [log, profile] = await Promise.all([
+      getDailyLog(user.uid, today),
+      getUserProfile(user.uid)
+    ]);
     setDailyLog(log);
+    if (profile) setUser(profile);
     setRefreshing(false);
   }, [user]);
 
   const handleAddWaterOz = async (oz: number) => {
     if (!user) return;
     await addWater(user.uid, selectedDate, oz);
-    const log = await getDailyLog(user.uid, selectedDate);
+    const [log, profile] = await Promise.all([
+      getDailyLog(user.uid, selectedDate),
+      getUserProfile(user.uid)
+    ]);
     setDailyLog(log);
+    if (profile) setUser(profile);
     setWaterInput('');
   };
 
@@ -270,6 +279,21 @@ export default function DashboardScreen() {
   const waterGlasses = totals.waterIntake || 0;
   const waterGoal = goals.water || 64;
 
+  let fastingProgress = 0;
+  const targetFastingHours = goals.fastingHours || 14;
+  if (dailyLog?.fastingStart) {
+    let diff = 0;
+    const start = new Date(dailyLog.fastingStart).getTime();
+    if (dailyLog.fastingEnd) {
+      diff = new Date(dailyLog.fastingEnd).getTime() - start;
+    } else {
+      diff = new Date().getTime() - start;
+    }
+    if (diff > 0) {
+      fastingProgress = diff / (targetFastingHours * 60 * 60 * 1000);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -278,9 +302,14 @@ export default function DashboardScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()}, {user?.displayName?.split(' ')[0] ?? 'Friend'} 👋</Text>
-          <Text style={styles.date}>{formatDateDisplay(selectedDate)}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View style={{ flexShrink: 1, paddingRight: 16 }}>
+            <Text style={styles.greeting}>{getGreeting()}, {user?.displayName?.split(' ')[0] ?? 'Friend'} 👋</Text>
+            <Text style={styles.date}>{formatDateDisplay(selectedDate)}</Text>
+          </View>
+          {user?.streak && user.streak.current > 0 && (
+            <StreakBadge streak={user.streak.current} size={40} />
+          )}
         </View>
       </View>
 
@@ -381,11 +410,22 @@ export default function DashboardScreen() {
         <View style={styles.waterBarTrack}>
           <View style={[styles.waterBarFill, { width: `${Math.min((waterGlasses / waterGoal) * 100, 100)}%` }]} />
         </View>
+        <View style={[styles.waterBtnRow, { marginBottom: 12 }]}>
+          <TouchableOpacity style={styles.addWaterBtn} onPress={() => handleAddWaterOz(8)}>
+            <Text style={styles.addWaterText}>+8 oz</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addWaterBtn} onPress={() => handleAddWaterOz(16)}>
+            <Text style={styles.addWaterText}>+16 oz</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addWaterBtn} onPress={() => handleAddWaterOz(40)}>
+            <Text style={styles.addWaterText}>+40 oz</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.waterBtnRow}>
           <TextInput
             style={[styles.weightInput, { flex: 1, marginBottom: 0, paddingVertical: 10, paddingHorizontal: 10 }]}
             keyboardType="numeric"
-            placeholder="oz"
+            placeholder="Custom oz"
             placeholderTextColor={Colors.textSecondary}
             value={waterInput}
             onChangeText={(text) => setWaterInput(text.replace(/[^0-9.]/g, ''))}
@@ -399,51 +439,47 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Fasting Tracker (Bitepal Style) */}
+      {/* Fasting Tracker (Circular Progress) */}
       <View style={styles.bitepalCard}>
         <View style={styles.bitepalRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bitepalSubtitle}>Fasting</Text>
-            <Text style={styles.bitepalTitle}>
-              {!dailyLog?.fastingStart ? "Start your fast" : dailyLog?.fastingEnd ? "Fast Completed" : "Fasting..."}
-            </Text>
+          <View style={{ flex: 1, alignItems: 'center', marginRight: 16 }}>
+            <CircularProgress
+              size={140}
+              strokeWidth={12}
+              progress={dailyLog?.fastingStart ? fastingProgress : 0}
+              color={fastingProgress >= 1 ? Colors.success : Colors.primary}
+              backgroundColor={Colors.surface}
+            >
+              <Text style={{ fontSize: 24, fontWeight: '800', color: Colors.text, textAlign: 'center' }}>
+                {!dailyLog?.fastingStart ? "--:--" : fastingDuration}
+              </Text>
+              <Text style={{ fontSize: 12, color: Colors.textSecondary, textAlign: 'center' }}>
+                {!dailyLog?.fastingStart ? "Ready" : dailyLog?.fastingEnd ? "Completed" : "Elapsed"}
+              </Text>
+            </CircularProgress>
           </View>
-          
-          <TouchableOpacity 
-            style={styles.bitepalActionBtn} 
-            onPress={!dailyLog?.fastingStart || dailyLog?.fastingEnd ? handleStartFasting : handleEndFasting}
-          >
-            <Text style={styles.bitepalActionText}>
-              {!dailyLog?.fastingStart || dailyLog?.fastingEnd ? "START" : "END"}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.bitepalFooter}>
-          {!dailyLog?.fastingStart ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-               <Text style={{ fontSize: 16, marginRight: 6 }}>⚠️</Text>
-               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{getFastingWarningText(goals.fastingStartTime)}</Text>
-            </View>
-          ) : !dailyLog?.fastingEnd ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-               <Text style={{ fontSize: 16, marginRight: 6 }}>⏱️</Text>
-               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{fastingDuration}</Text>
-            </View>
-          ) : (
-             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-               <Text style={{ fontSize: 16, marginRight: 6 }}>✅</Text>
-               <Text style={{ fontSize: 16, fontWeight: '700', color: Colors.text }}>{fastingDuration}</Text>
-            </View>
-          )}
-          
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={styles.bitepalGoalText}>Goal: {goals.fastingHours || 14}h</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Settings' as any)}>
-              <Text style={styles.bitepalGoalText}>•••</Text>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <Text style={styles.bitepalSubtitle}>Fasting Goal</Text>
+            <Text style={[styles.bitepalTitle, { fontSize: 24, marginBottom: 12 }]}>{targetFastingHours}h</Text>
+            
+            <TouchableOpacity 
+              style={[styles.bitepalActionBtn, { width: '100%', height: 50, borderRadius: 12, marginLeft: 0, backgroundColor: (!dailyLog?.fastingStart || dailyLog?.fastingEnd) ? Colors.primary : Colors.surface }]} 
+              onPress={!dailyLog?.fastingStart || dailyLog?.fastingEnd ? handleStartFasting : handleEndFasting}
+            >
+              <Text style={[styles.bitepalActionText, { color: (!dailyLog?.fastingStart || dailyLog?.fastingEnd) ? '#fff' : Colors.text }]}>
+                {!dailyLog?.fastingStart || dailyLog?.fastingEnd ? "START FAST" : "END FAST"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {!dailyLog?.fastingStart && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 16, justifyContent: 'center' }}>
+             <Text style={{ fontSize: 14, marginRight: 6 }}>⚠️</Text>
+             <Text style={{ fontSize: 14, fontWeight: '600', color: Colors.textSecondary }}>{getFastingWarningText(goals.fastingStartTime)}</Text>
+          </View>
+        )}
       </View>
 
       {/* Fasting Modal */}
