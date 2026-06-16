@@ -12,7 +12,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 | --- | --- | --- |
 | ![Login Page](assets/Screenshots/login_page.png) | ![Home Page](assets/Screenshots/homepage.png) | ![Add Meal Page](assets/Screenshots/add_meal_page.png) |
 
-| Statistics & Fasting | Fasting & Meal History | Settings |
+| Statistics | Fasting & Meal History | Settings |
 | --- | --- | --- |
 | ![Statistics & Fasting](assets/Screenshots/statistics_page1.png) | ![Fasting & Meal History](assets/Screenshots/statistics_page2.png) | ![Settings](assets/Screenshots/settings.png) |
 
