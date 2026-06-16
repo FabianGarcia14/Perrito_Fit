@@ -12,10 +12,48 @@ import {
   TextInput,
   Keyboard,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { BrowserMultiFormatReader } from '@zxing/library';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+const WebScanner = ({ onScan }: { onScan: (data: string) => void }) => {
+  const videoRef = React.useRef<any>(null);
+  
+  useEffect(() => {
+    const codeReader = new BrowserMultiFormatReader();
+    let isComponentMounted = true;
+    
+    if (videoRef.current) {
+      const constraints = {
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      };
+      codeReader.decodeFromConstraints(constraints, videoRef.current, (result, err) => {
+        if (isComponentMounted && result) {
+          onScan(result.getText());
+        }
+      }).catch(e => console.log('Camera error', e));
+    }
+    
+    return () => {
+      isComponentMounted = false;
+      codeReader.reset();
+    };
+  }, [onScan]);
+
+  // @ts-ignore - react-native-web supports rendering HTML tags via createElement
+  return React.createElement('video', {
+    ref: videoRef,
+    style: { width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' },
+    autoPlay: true,
+    muted: true,
+    playsInline: true,
+  });
+};
+
 import { Colors } from '../theme/colors';
 import { fetchProductByBarcode } from '../services/openFoodFactsService';
 import { parseFraction } from '../utils/parseFraction';
@@ -181,7 +219,13 @@ export default function BarcodeScannerScreen() {
 
   return (
     <View style={styles.container}>
-      {isFocused && (
+      {isFocused && Platform.OS === 'web' ? (
+        <WebScanner onScan={(data) => {
+          if (!scanned && !loading) {
+            handleBarCodeScanned({ type: 'web', data });
+          }
+        }} />
+      ) : isFocused ? (
         <CameraView
           style={StyleSheet.absoluteFillObject}
           barcodeScannerSettings={{
@@ -189,7 +233,7 @@ export default function BarcodeScannerScreen() {
           }}
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         />
-      )}
+      ) : null}
 
       {/* Overlay */}
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
@@ -258,7 +302,7 @@ export default function BarcodeScannerScreen() {
 
         {/* Product Result */}
         {product && (
-          <View style={styles.productCard}>
+          <ScrollView style={styles.productCard} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
             {product.imageUrl && (
               <Image source={{ uri: product.imageUrl }} style={styles.productImage} resizeMode="contain" />
             )}
@@ -384,7 +428,7 @@ export default function BarcodeScannerScreen() {
                 <Text style={styles.scanAgainText}>Scan Again</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         )}
         </View>
       </TouchableWithoutFeedback>
@@ -492,7 +536,8 @@ const styles = StyleSheet.create({
   productCard: {
     backgroundColor: Colors.card,
     borderRadius: 24,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
     marginHorizontal: 20,
     width: width - 40,
     maxHeight: height * 0.75,

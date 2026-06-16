@@ -18,12 +18,10 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 ---
 
-## What's New in v1.1.0
+## What's New
 
-- **Barcode Scanner Enhancements:** `CameraView` works gracefully on web, with a manual barcode entry text input and 'Look Up' button as a fallback.
-- **Optimistic UI for Fasting:** Instant UI updates when starting or ending a fast on the Dashboard.
-- **Quick Settings Access:** Tap the '•••' on the Fasting and Weight Dashboard cards to jump directly to Settings.
-- **Bug Fix:** Addressed a Firestore bug where daily logs incorrectly stored `'clear'` string instead of proper null/deleted fields for fasting times.
+- **Full Web Barcode Scanning:** Integrated `@zxing/library` to support live camera barcode scanning directly in web browsers alongside the existing native `expo-camera` implementation.
+- **Scrollable Product Details:** Enhanced the barcode result card to scroll gracefully on smaller screens.
 
 ---
 
@@ -31,7 +29,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 - **Interactive Mascot (Henni):** A virtual dog that reacts dynamically to your logging actions (eating, drinking, celebrating, sleeping, and encouraging).
 - **Complete Meal & Macro Logger:** Track calories, proteins, carbs, fats, sodium, cholesterol, sugars, and fiber. Categorize by Breakfast, Lunch, Dinner, and Snacks.
-- **Barcode Scanner & Caching:** Scan product barcodes instantly using the **Open Food Facts API** with custom database caching and graceful error overlays.
+- **Barcode Scanner & Caching:** Scan product barcodes instantly on both native mobile (using `expo-camera`) and web browsers (using `@zxing/library` camera stream decoding). Integrates with the **Open Food Facts API**, custom database caching, and fallback manual entry.
 - **Water Intake Tracker:** Set daily hydration targets and log water intake with a flexible numeric input.
 - **Statistics & Progress Charts:** Toggle weekly, monthly, and yearly bar charts for Calories, Protein, and Weight logs.
 - **Interactive Meal Manager:** Tap any logged meal to edit its quantity (which dynamically recalculates nutritional macros) or delete it directly from the Statistics page.
