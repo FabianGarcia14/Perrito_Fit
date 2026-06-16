@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Type Definitions ──────────────────────────────────────────
+// ─── Chenna Fit – Type Definitions ──────────────────────────────────────────
 
 // ── User ──────────────────────────────────────────────
 export interface UserProfile {

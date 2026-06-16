@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Firestore Service ──────────────────────────────────────────
+// ─── Chenna Fit – Firestore Service ──────────────────────────────────────────
 
 import {
   doc,

@@ -5,7 +5,7 @@ export const searchOpenFoodFacts = async (query: string, signal?: AbortSignal): 
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'PerritoFit - iOS/Android - Version 1.0 - https://github.com/PerritoFit',
+        'User-Agent': 'ChennaFit - iOS/Android - Version 1.0 - https://github.com/ChennaFit',
       },
       signal
     });

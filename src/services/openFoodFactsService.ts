@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Open Food Facts Service ────────────────────────────────────
+// ─── Chenna Fit – Open Food Facts Service ────────────────────────────────────
 
 import type { OpenFoodFactsResult } from '../types';
 import { getCachedProduct, cacheProduct } from './foodCacheService';
@@ -33,7 +33,7 @@ export async function fetchProductByBarcode(
 
     const res = await fetch(`${BASE_URL}/${barcode}.json`, {
       headers: {
-        'User-Agent': 'PerritoFit/1.0 (health-tracker-app)',
+        'User-Agent': 'ChennaFit/1.0 (health-tracker-app)',
       },
     });
 

@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Auth Service ───────────────────────────────────────────────
+// ─── Chenna Fit – Auth Service ───────────────────────────────────────────────
 
 import {
   createUserWithEmailAndPassword,

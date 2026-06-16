@@ -322,7 +322,7 @@ export default function SettingsScreen() {
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appName}>🐕 Perrito Fit</Text>
+        <Text style={styles.appName}>🐕 Chenna Fit</Text>
         <Text style={styles.appVersion}>Version 1.1.0</Text>
         <Text style={styles.appMascots}>Mali 🐕‍🦺 & Henni 🐕</Text>
       </View>

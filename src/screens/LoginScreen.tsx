@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation }: Props) {
             style={styles.heroImage} 
             resizeMode="cover" 
           />
-          <Text style={styles.title}>Perrito Fit</Text>
+          <Text style={styles.title}>Chenna Fit</Text>
           <Text style={styles.subtitle}>
             Your fitness companions await!
           </Text>

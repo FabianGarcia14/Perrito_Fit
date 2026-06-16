@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Perrito Fit",
-    "slug": "perrito-fit",
+    "name": "Chenna Fit",
+    "slug": "chenna-fit",
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.jpg",
@@ -21,8 +21,8 @@
     "web": {
       "favicon": "./assets/favicon.jpg",
       "bundler": "metro",
-      "name": "Perrito Fit",
-      "shortName": "Perrito Fit",
+      "name": "Chenna Fit",
+      "shortName": "Chenna Fit",
       "themeColor": "#0F0A1A",
       "backgroundColor": "#0F0A1A",
       "display": "standalone"

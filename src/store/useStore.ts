@@ -1,10 +1,10 @@
-// ─── Perrito Fit – Zustand Store ──────────────────────────────────────────────
+// ─── Chenna Fit – Zustand Store ──────────────────────────────────────────────
 
 import { create } from 'zustand';
 import type { UserProfile, DailyLog, MascotState } from '../types';
 import { getLocalDateString } from '../utils/dateUtils';
 
-interface PerritoStore {
+interface ChennaStore {
   // ── State ────────────────────────────────────────────────────────────────
   user: UserProfile | null;
   dailyLog: DailyLog | null;
@@ -22,7 +22,7 @@ interface PerritoStore {
   getMascotState: () => MascotState;
 }
 
-export const useStore = create<PerritoStore>((set, get) => ({
+export const useStore = create<ChennaStore>((set, get) => ({
   // ── Initial state ──────────────────────────────────────────────────────
   user: null,
   dailyLog: null,

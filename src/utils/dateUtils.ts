@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Date Utilities ─────────────────────────────────────────────
+// ─── Chenna Fit – Date Utilities ─────────────────────────────────────────────
 
 /**
  * Returns today's date as 'YYYY-MM-DD' in the device's LOCAL timezone.

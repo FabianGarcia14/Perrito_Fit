@@ -1,6 +1,6 @@
-# Perrito Fit — Interactive Health & Nutrition Tracker
+# Chenna Fit — Interactive Health & Nutrition Tracker
 
-Perrito Fit is a beautiful, interactive mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase** (designed for human health tracking with a fun companion mascot). 
+Chenna Fit is a beautiful, interactive mobile health and nutrition tracker built with **React Native (Expo)**, **TypeScript**, **Zustand**, and **Firebase** (designed for human health tracking with a fun companion mascot). 
 
 Users can log their meals, water intake, daily macro-nutrients, and weight. The unique feature is **Henni the Mascot**—an adorable virtual dog that stays active on your dashboard, sleeping, eating, drinking, or encouraging you based on your habits, streak, and log history!
 
@@ -52,7 +52,7 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 ## Project Structure
 
 ```text
-Perrito_Fit/
+Chenna_Fit/
 ├── assets/             # Images, icons, fonts, and Henni mascot assets
 ├── public/             # Web public assets (favicon, apple-touch-icon)
 ├── src/
@@ -84,7 +84,7 @@ Make sure you have **Node.js** (v18+) and **git** installed. We recommend instal
 ### 1. Clone the repository
 ```bash
 git clone <your-repository-url>
-cd Perrito_Fit
+cd Chenna_Fit
 ```
 
 ### 2. Install dependencies
@@ -136,4 +136,4 @@ Distributed under the MIT License. See [LICENSE](file:///c:/Inventos_AI/Perrito_
 
 ---
 
-*Made with love by the Perrito Fit team.*
+*Made with love by the Chenna Fit team.*

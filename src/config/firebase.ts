@@ -1,4 +1,4 @@
-// ─── Perrito Fit – Firebase Configuration ────────────────────────────────────
+// ─── Chenna Fit – Firebase Configuration ────────────────────────────────────
 
 import { initializeApp } from 'firebase/app';
 import { Platform } from 'react-native';
