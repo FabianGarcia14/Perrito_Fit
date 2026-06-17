@@ -20,6 +20,8 @@ Users can log their meals, water intake, daily macro-nutrients, and weight. The 
 
 ## What's New
 
+- **Streak Logic Optimization:** Redesigned Firestore streak mapping updates to be fire-and-forget, preventing network latency from blocking meal-saving actions.
+- **Enhanced Save UX:** Replaced blocking native Alerts with modern, non-blocking in-app success/error banners and introduced network timeout safety races when saving or updating meals.
 - **Daily Logging Streak:** Added an animated fire streak badge to the home screen header to encourage logging consistency. Automatically persists and calculates consecutive tracking days.
 - **Visual Fasting Tracker:** Integrated an interactive circular progress timer on the dashboard allowing users to start, stop, and track active fasts in real time.
 - **Fasting History Logs:** View details and trends of past fasting sessions alongside nutrition logs in the redesigned History tab.
@@ -101,8 +103,8 @@ npm install
 The project is configured with a default Firebase App. If you want to use your own Firebase database:
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/).
 2. Enable **Authentication** (Email/Password) and **Firestore Database**.
-3. Deploy the Firestore security rules defined in [firestore.rules](file:///c:/Inventos_AI/Perrito_Fit/firestore.rules).
-4. Update [src/config/firebase.ts](file:///c:/Inventos_AI/Perrito_Fit/src/config/firebase.ts) with your credentials:
+3. Deploy the Firestore security rules defined in [firestore.rules](file:///c:/Inventos_AI/Chenna_Fit/firestore.rules).
+4. Update [src/config/firebase.ts](file:///c:/Inventos_AI/Chenna_Fit/src/config/firebase.ts) with your credentials:
    ```typescript
    const firebaseConfig = {
      apiKey: "YOUR_API_KEY",

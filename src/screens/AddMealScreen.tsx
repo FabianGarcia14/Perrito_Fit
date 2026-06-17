@@ -52,6 +52,7 @@ export default function AddMealScreen() {
   const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [recentMeals, setRecentMeals] = useState<Meal[]>([]);
   const [isFraction, setIsFraction] = useState(false);
@@ -365,56 +366,82 @@ export default function AddMealScreen() {
 
     try {
       const date = isEditing ? (editDate || selectedDate) : selectedDate;
+
+      // Helper: race a promise against a timeout so nothing hangs forever
+      const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+        Promise.race([
+          promise,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+        ]);
+
       if (isEditing && route.params?.editMeal) {
-        await editMealInLog(user.uid, date, route.params.editMeal, meal);
-        await saveRecentMeal(user.uid, meal, meal.type);
-        Alert.alert('✅ Meal Updated!', `${meal.name} has been updated.`);
+        await withTimeout(editMealInLog(user.uid, date, route.params.editMeal, meal), 10000);
+        try { await withTimeout(saveRecentMeal(user.uid, meal, meal.type), 5000); } catch (_) {}
         
-        // Reset and clear editing state
-        navigation.setParams({ editMeal: undefined, editDate: undefined, scannedProduct: undefined });
-        setIsEditing(false);
-        setEditMealId(null);
-        setEditDate(null);
-        setFoodName('');
-        setCalories('');
-        setProtein('');
-        setCarbs('');
-        setFat('');
-        setSodium('');
-        setCholesterol('');
-        setSugars('');
-        setFiber('');
-        setQuantity('100');
-        setUnit('g');
-        setBaseNutrition(null);
-        
-        (navigation as any).navigate('History');
+        try {
+          const log = await withTimeout(getDailyLog(user.uid, date), 5000);
+          setDailyLog(log);
+        } catch (_) {}
+
+        setSaving(false);
+        setSuccessMessage(`✅ ${meal.name} has been updated.`);
+
+        setTimeout(() => {
+          setSuccessMessage('');
+          // Reset and clear editing state
+          navigation.setParams({ editMeal: undefined, editDate: undefined, scannedProduct: undefined });
+          setIsEditing(false);
+          setEditMealId(null);
+          setEditDate(null);
+          setFoodName('');
+          setCalories('');
+          setProtein('');
+          setCarbs('');
+          setFat('');
+          setSodium('');
+          setCholesterol('');
+          setSugars('');
+          setFiber('');
+          setQuantity('100');
+          setUnit('g');
+          setBaseNutrition(null);
+          
+          (navigation as any).navigate('History');
+        }, 1500);
       } else {
-        await addMealToLog(user.uid, date, meal);
-        await saveRecentMeal(user.uid, meal, meal.type);
-        Alert.alert('✅ Meal Added!', `${meal.name} has been logged.`);
+        await withTimeout(addMealToLog(user.uid, date, meal), 10000);
+        try { await withTimeout(saveRecentMeal(user.uid, meal, meal.type), 5000); } catch (_) {}
         
-        // Reset form
-        setFoodName('');
-        setCalories('');
-        setProtein('');
-        setCarbs('');
-        setFat('');
-        setSodium('');
-        setCholesterol('');
-        setSugars('');
-        setFiber('');
-        setQuantity('100');
-        setUnit('g');
-        setBaseNutrition(null);
+        try {
+          const log = await withTimeout(getDailyLog(user.uid, date), 5000);
+          setDailyLog(log);
+        } catch (_) {}
+
+        setSaving(false);
+        setSuccessMessage(`✅ ${meal.name} has been logged.`);
+
+        setTimeout(() => {
+          setSuccessMessage('');
+          // Reset form
+          setFoodName('');
+          setCalories('');
+          setProtein('');
+          setCarbs('');
+          setFat('');
+          setSodium('');
+          setCholesterol('');
+          setSugars('');
+          setFiber('');
+          setQuantity('100');
+          setUnit('g');
+          setBaseNutrition(null);
+        }, 1500);
       }
-      
-      const log = await getDailyLog(user.uid, date);
-      setDailyLog(log);
     } catch (e) {
-      Alert.alert('Error', 'Could not save meal. Try again.');
-    } finally {
+      console.error('Error saving meal:', e);
       setSaving(false);
+      setSuccessMessage('❌ Error: Could not save meal. Try again.');
+      setTimeout(() => setSuccessMessage(''), 2000);
     }
   };
 
@@ -680,13 +707,19 @@ export default function AddMealScreen() {
               </View>
 
           {/* Save Button */}
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color="#fff" />
+          <View style={styles.btnContainer}>
+            {successMessage ? (
+              <Text style={styles.successText}>{successMessage}</Text>
             ) : (
-              <Text style={styles.saveBtnText}>{isEditing ? 'Save Changes ✅' : 'Add Meal ✅'}</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveBtnText}>{isEditing ? 'Save Changes ✅' : 'Add Meal ✅'}</Text>
+                )}
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+          </View>
 
           {isEditing ? (
             <TouchableOpacity 
@@ -798,6 +831,16 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: Colors.surface,
+  },
+  btnContainer: {
+    marginTop: 24,
+  },
+  successText: {
+    color: '#2ecc71',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 10,
   },
   formTitle: { fontSize: 18, fontWeight: '700', color: Colors.text, marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary, marginBottom: 6, marginTop: 8 },

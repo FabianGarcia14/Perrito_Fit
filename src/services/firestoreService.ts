@@ -81,9 +81,11 @@ export async function updateStreak(uid: string, logDate: string): Promise<void> 
   const newLongest = Math.max(longest, newCurrent);
 
   await updateDoc(profileRef, {
-    'streak.current': newCurrent,
-    'streak.longest': newLongest,
-    'streak.lastLogDate': logDate,
+    streak: {
+      current: newCurrent,
+      longest: newLongest,
+      lastLogDate: logDate,
+    }
   });
 }
 
@@ -176,8 +178,8 @@ export async function addMealToLog(
     });
   }
 
-  // Update streak
-  await updateStreak(uid, date);
+  // Update streak (fire-and-forget – must never block saving)
+  updateStreak(uid, date).catch((e) => console.warn('Streak update failed:', e));
 }
 
 /**

@@ -90,6 +90,7 @@ export default function BarcodeScannerScreen() {
   const [unit, setUnit] = useState('g');
   const [mealType, setMealType] = useState<MealType>('Snack');
   const [saving, setSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const { user, selectedDate, setDailyLog } = useStore();
 
@@ -167,24 +168,40 @@ export default function BarcodeScannerScreen() {
         }
       };
 
-      await addMealToLog(user.uid, selectedDate, meal);
-      await saveRecentMeal(user.uid, meal, meal.type);
-      
-      const log = await getDailyLog(user.uid, selectedDate);
-      setDailyLog(log);
+      // Helper: race a promise against a timeout so nothing hangs forever
+      const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+        Promise.race([
+          promise,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+        ]);
 
-      Alert.alert('✅ Meal Added!', `${meal.name} has been logged.`);
-      navigation.goBack();
-    } catch (e) {
-      Alert.alert('Error', 'Could not save meal.');
-    } finally {
+      await withTimeout(addMealToLog(user.uid, selectedDate, meal), 10000);
+
+      // These are non-critical – don't let them block the confirmation
+      try { await withTimeout(saveRecentMeal(user.uid, meal, meal.type), 5000); } catch (_) {}
+
+      try {
+        const log = await withTimeout(getDailyLog(user.uid, selectedDate), 5000);
+        setDailyLog(log);
+      } catch (_) {}
+
       setSaving(false);
+      setSuccessMessage(`✅ ${meal.name} has been logged.`);
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+        if (navigation.canGoBack()) {
+          navigation.goBack();
+        } else {
+          navigation.navigate('MainTabs' as any, { screen: 'History' });
+        }
+      }, 1500);
+    } catch (e) {
+      console.error('Error saving meal:', e);
+      setSaving(false);
+      setSuccessMessage('❌ Error: Could not save meal.');
+      setTimeout(() => setSuccessMessage(''), 2000);
     }
-  };
-
-  const handleScanAgain = () => {
-    setScanned(false);
-    setProduct(null);
   };
 
   // Permission not yet determined
@@ -235,10 +252,14 @@ export default function BarcodeScannerScreen() {
         />
       ) : null}
 
+      {/* Dismiss Keyboard Background */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={StyleSheet.absoluteFillObject} />
+      </TouchableWithoutFeedback>
+
       {/* Overlay */}
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <View style={styles.overlay}>
-          {/* Top bar */}
+      <View style={styles.overlay} pointerEvents="box-none">
+        {/* Top bar */}
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
             <Text style={styles.closeBtnText}>✕</Text>
@@ -302,7 +323,7 @@ export default function BarcodeScannerScreen() {
 
         {/* Product Result */}
         {product && (
-          <ScrollView style={styles.productCard} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.productCard} contentContainerStyle={{ paddingBottom: 24 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {product.imageUrl && (
               <Image source={{ uri: product.imageUrl }} style={styles.productImage} resizeMode="contain" />
             )}
@@ -414,24 +435,29 @@ export default function BarcodeScannerScreen() {
             </View>
 
             <View style={styles.productActions}>
-              <TouchableOpacity style={styles.addBtn} onPress={handleDirectSave} disabled={saving}>
-                {saving ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.addBtnText}>Add to Meal ✅</Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.scanAgainBtn} onPress={handleEditMeal}>
-                <Text style={styles.scanAgainText}>Edit Meal ✏️</Text>
-              </TouchableOpacity>
+              {successMessage ? (
+                <Text style={styles.successText}>{successMessage}</Text>
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.addBtn} onPress={handleDirectSave} disabled={saving}>
+                    {saving ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={styles.addBtnText}>Add to Meal ✅</Text>
+                    )}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.editBtn} onPress={handleEditMeal} disabled={saving}>
+                    <Text style={styles.editBtnText}>Edit Meal ✏️</Text>
+                  </TouchableOpacity>
+                </>
+              )}
               <TouchableOpacity style={styles.scanAgainBtn} onPress={() => { setProduct(null); setScanned(false); }}>
                 <Text style={styles.scanAgainText}>Scan Again</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
         )}
-        </View>
-      </TouchableWithoutFeedback>
+      </View>
     </View>
   );
 }
@@ -581,7 +607,26 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  addBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  addBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  successText: {
+    color: Colors.success,
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 10,
+  },
+  editBtn: {
+    borderRadius: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.surface,
+  },
+  editBtnText: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
   scanAgainBtn: {
     borderRadius: 16,
     paddingVertical: 12,
